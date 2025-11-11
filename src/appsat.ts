@@ -51,7 +51,7 @@ export class AppSat {
     // Internal variables to support ThreeJS plotting.
     private spot: THREE.Mesh | null = null;
     private oldSpot: THREE.Mesh | null = null;
-    private spotColor: number = 0xffff00;
+    private spotColor: number = 0xffffff;
     private spotRadius: number = 50;
     private spotSegWidth: number = 16;
     private spotSegNum: number = 16;
@@ -81,11 +81,11 @@ export class AppSat {
         return sat;
     }
 
-    public update(clock: Date): AppSat | false | null {
+    public update(clock: Date, color: number | null = null, radius: number | null = null): AppSat | false | null {
         if(this.satrec === null) return false;
         if(this.positionAT(clock) === null) return null;
         if(this.updatePositionAT(clock)) {
-            this.createSpot();
+            this.createSpot(color, radius);
         }
         else {
             this.spot = null;
@@ -188,6 +188,67 @@ export class AppSat {
         return null;
     }
 
+    /**
+     * Create the satellite spot THREE.Mesh and position it in TheeJS space.
+     * These are normally attached to the Earth Group to pick up the Earth rotation
+     * @param in_color Override the default AppSat color.
+     * @returns AppSat instance
+     */
+    private createSpot(in_color: number | null, in_radius: number | null): AppSat {
+        let color:number = this.spotColor;
+        if(in_color !== null) {
+            color = in_color;
+        }
+        let radius: number = this.spotRadius;
+        if(in_radius !== null) {
+            radius = in_radius;
+        }
+        if(this.position !== null) {
+            //const color:number = this.spotColor;
+            const geometry = new THREE.SphereGeometry(radius, this.spotSegWidth, this.spotSegNum);
+            const material = new THREE.MeshBasicMaterial({ color });
+            const spot = new THREE.Mesh(geometry, material); 
+            spot.position.set(this.position.x, this.position.y, this.position.z);
+            this.oldSpot = this.spot; // Store the previous spot so it can be removed.
+            this.spot = spot;
+
+        }
+        return this;
+    }
+
+    /**
+     * Getter for the spot mesh.
+     * Returns the internal spot mesh (or null if not created).
+     * @returns THREE.Mesh
+     */
+    public getSpot(): THREE.Mesh | null {
+        return this.spot;
+    }
+
+    /**
+     * Getter for the previous (old) spot mesh.
+     * Returns the internal old spot mesh (or null if not created).
+     * @returns THREE.Mesh
+     */
+    public getOldSpot(): THREE.Mesh | null {
+        return this.oldSpot;
+    }
+    
+    /**
+     * Disposes of a spot (usually the old one)
+     * @param spot THREE.Mesh
+     */
+    public spotDispose(spot: THREE.Mesh) {
+        (spot.geometry as THREE.SphereGeometry).dispose();
+        (spot.material as THREE.Material).dispose();
+    }
+
+    /**
+     * If the AppSat is setup and propargating normally
+     * returns the internal data structures as a string.
+     * Useful for logging to console.log()
+     * @returns string | null
+     */
     public toString(): string | null {
         if(this.satrec === null || this.positionAtTime === null) return null;
         let log:string = "";
@@ -205,44 +266,6 @@ export class AppSat {
         return log;
     }
 
-    /**
-     * Create the satellite spot THREE.Mesh 
-     * @param color 
-     * @returns AppSat instance
-     */
-    private createSpot(): AppSat {
-        if(this.position !== null) {
-            const color:number = this.spotColor;
-            const geometry = new THREE.SphereGeometry(this.spotRadius, 
-                this.spotSegWidth, this.spotSegNum);
-            const material = new THREE.MeshBasicMaterial({ color });
-            const spot = new THREE.Mesh(geometry, material); 
-            spot.position.set(this.position.x, this.position.y, this.position.z);
-            this.oldSpot = this.spot; // Store the previous spot so it can be removed.
-            this.spot = spot;
-
-        }
-        return this;
-    }
-
-    public spotDispose(spot: THREE.Mesh) {
-        spot.geometry.dispose();
-        (spot.material as THREE.Material).dispose();
-    }
-
-    /**
-     * Getter for the spot mesh.
-     * Returns the internal spot mesh (or null if not created).
-     * @returns THREE.Mesh
-     */
-    public getSpot(): THREE.Mesh | null {
-        return this.spot;
-    }
-
-    public getOldSpot(): THREE.Mesh | null {
-        return this.oldSpot;
-    }
-    
     /**
      * Example usage:
      * const epoch = 25313.96830531;

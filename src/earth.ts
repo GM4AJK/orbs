@@ -1,4 +1,21 @@
+/*
+MIT license
 
+Copyright (c) 2025 Andy Kirkham All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation, to use the software and to copy, 
+distribute, and/or modify this software for any purpose, provided that the above 
+copyright notice and this permission notice appear in all copies and substantial 
+portions of the software.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+ FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ DEALINGS IN THIS SOFTWARE.
+*/
 import * as THREE from 'three'
 
 import * as satellite from 'satellite.js';
@@ -62,8 +79,8 @@ export class Earth {
     private css: AppSat | null;
     private earthRadiusKm: number = 6371; // Earth's mean radius in kilometers
     private earthMesh: THREE.Mesh;
-    private satelliteOrbitsMap: Map<string, THREE.Line<THREE.BufferGeometry<THREE.NormalBufferAttributes, THREE.BufferGeometryEventMap>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>>;
-    private satelliteSpotsMap: Map<string, THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes, THREE.BufferGeometryEventMap>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>>;
+    private _satelliteOrbitsMap: Map<string, THREE.Line<THREE.BufferGeometry<THREE.NormalBufferAttributes, THREE.BufferGeometryEventMap>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>>;
+    private _satelliteSpotsMap: Map<string, THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes, THREE.BufferGeometryEventMap>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>>;
 
     constructor(scene: THREE.Scene | null, appClock: AppClock) {
         this.appSatArray = new Map();
@@ -77,8 +94,8 @@ export class Earth {
         }
         this.earth = new THREE.Group();
         this.appClock = appClock;
-        this.satelliteSpotsMap = new Map<string, THREE.Mesh>; 
-        this.satelliteOrbitsMap = new Map<string, THREE.Line>; 
+        this._satelliteSpotsMap = new Map<string, THREE.Mesh>; 
+        this._satelliteOrbitsMap = new Map<string, THREE.Line>; 
         const textureLoader = new THREE.TextureLoader();
         const earthTexture = textureLoader.load('textures/2_no_clouds_8k.jpg');
         const earthGeometry = new THREE.SphereGeometry(this.earthRadiusKm, 256, 256);
@@ -101,9 +118,25 @@ export class Earth {
         }
     }
 
+    private specialCases(name: string): [number, number] | [null, null] {
+        // ISS and CSS are special cases so color them
+        if(name == 'ISS (ZARYA)') { 
+            return [0xff0000, 50];
+        }
+        if(name == 'CSS (TIANHE)') { 
+            return [0xffff00, 50];
+        }
+        return [null, null];
+    }
+
     public update(clock: Date) {
-        this.appSatArray.forEach((sat:AppSat, name:string) => {
-            const result = sat.update(clock);
+        this.appSatArray.forEach((sat:AppSat, _name:string) => {
+            let color = null;
+            let radius = null;
+            if(sat.line0 !== null) {
+                [color, radius] = this.specialCases(sat.line0);
+            }
+            const result = sat.update(clock, color, radius);
             if(result !== null) {
                 const spot = sat.getSpot();
                 if(spot !== null) {
@@ -113,7 +146,7 @@ export class Earth {
                         sat.spotDispose(old);
                     }
                     this.earth.add(spot);
-                    console.log(name + " " + sat.toString());
+                    //console.log(sat.toString());
                 }
             }
         });
@@ -122,34 +155,6 @@ export class Earth {
     getEarth(): THREE.Mesh {
         return this.earthMesh;
     }
-
-    /*
-    addISS() {
-        const oldOrbit = this.satelliteOrbitsMap.get('ISS');
-        if(oldOrbit) {
-            this.earth.remove(oldOrbit);
-            oldOrbit.geometry.dispose();
-            (oldOrbit.material as THREE.Material).dispose();
-        }
-        const issOrbit = this.createOrbitFromTLE(ISS, 0xffffff, 10);
-        if(issOrbit !== null) {
-            this.satelliteOrbitsMap.set('ISS', issOrbit);
-            this.earth.add(issOrbit);
-        }
-        const oldSpot = this.satelliteSpotsMap.get('ISS');
-        if(oldSpot) {
-            this.earth.remove(oldSpot);
-            oldSpot.geometry.dispose();
-            (oldSpot.material as THREE.Material).dispose();
-        }
-        const now = this.appClock.Date;
-        const issPos = this.createSatelliteSpot(ISS, now);
-        if(issPos !== null) {
-            this.satelliteSpotsMap.set('ISS', issPos);
-            this.earth.add(issPos);
-        }
-    }
-    */
 
     getEquator(): THREE.LineLoop {
         const ring = this.createGreatCircleRing(this.earthRadiusKm + 250, 256, 0xff0000); // Red
@@ -163,6 +168,7 @@ export class Earth {
         return ring;
     }
  
+/*
     createOrbitFromTLE(tleJson: satellite.OMMJsonObjectV3, color: number = 0x00ffff, seconds: number = 10): THREE.Line | null {
         const satrec = satellite.json2satrec(tleJson);
         const points = [];
@@ -214,6 +220,7 @@ export class Earth {
             return null;
         }
     }
+*/
 
     createGreatCircleRing(radius: number, segments: number, color: number): THREE.LineLoop {
         const points: THREE.Vector3[] = [];
