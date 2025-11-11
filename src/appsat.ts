@@ -71,7 +71,6 @@ export class AppSat {
 
     public update(clock: Date, color: number | null = null, radius: number | null = null): AppSat | false | null {
         if(this.satrec === null) return false;
-        if(this.positionAT(clock) === null) return null;
         if(this.updatePositionAT(clock)) {
             this.createSpot(color, radius);
         }
@@ -117,7 +116,7 @@ export class AppSat {
         this.line0 = (line0 !== null) ? line0 : "";
         this.satrec = satellite.twoline2satrec(this.line1, this.line2);
         if(this.satrec !== null) {
-            this.epoch = this.tleEpochToUTC_Num(this.satrec.jdsatepoch);
+            this.epoch = AppSat.tleEpochToUTC_Num(this.satrec.jdsatepoch);
             return this;
         }
         return null;
@@ -127,55 +126,12 @@ export class AppSat {
         this.satrec = satellite.json2satrec(in_oom);
         if(this.satrec !== null) {
             this.line0 = in_oom.OBJECT_NAME;
-            this.epoch = this.tleEpochToUTC_Num(this.satrec.jdsatepoch);
+            this.epoch = AppSat.tleEpochToUTC_Num(this.satrec.jdsatepoch);
             return this;
         }
         return null;
     }
-
-    public positionAT(in_date: Date, withGP: boolean = false, withConsole: boolean = false) : AppSatPosition | null {
-        if(this.satrec !== null) {
-            const dtime = new Date(in_date.getTime());
-            const j: number = satellite.jday(dtime);
-            const m: number = (j - this.satrec.jdsatepoch) * 1440.0;
-            this.posVel = satellite.sgp4(this.satrec, m); 
-            const gmst = satellite.gstime(dtime);
-            if(!this.posVel) return null;
-            const posEci: satellite.EciVec3<number> = this.posVel.position;
-            if (!posEci) return null;
-            let geo: satellite.GeodeticLocation = { latitude: -1, longitude: -1, height: -1 };
-            if(withGP == true) {
-                geo = satellite.eciToGeodetic(posEci, gmst);
-            }
-            // Convert to Three.js coordinates (Y-up)
-            const posEcf = satellite.eciToEcf(posEci, gmst);
-            let vec = new THREE.Vector3(posEcf.x, posEcf.z, -posEcf.y); // ECI to THREE
-            this.position = vec;
-            const velEcf = satellite.eciToEcf(this.posVel.velocity, gmst);
-            this.velocity = new THREE.Vector3(velEcf.x, velEcf.z, -velEcf.y); // ECI to THREE
-            const p: AppSatPosition = {
-                threejs: vec,
-                position: posEci,
-                velocity: this.posVel.velocity,
-                ecf: posEcf,
-                gp: geo
-            };
-            if(withConsole == true) {
-                let log: string = "";
-                log += `Sat: ${this.line0} Time: ${in_date.toISOString()}\n`;
-                if(withGP == true && p.gp !== null) {
-                    log += `  GP: Lat: ${(p.gp.latitude*180/Math.PI).toFixed(2)}°, Lon: ${(p.gp.longitude*180/Math.PI).toFixed(2)}°, Alt: ${p.gp.height.toFixed(3)} km\n`;
-                }
-                log += `   P:  x = ${p.position.x}, y = ${p.position.y}, z = ${p.position.z}\n`;
-                log += `   V:  xdot = ${p.velocity.x}, ydot = ${p.velocity.y}, zdot = ${p.velocity.z}\n`;
-                log += `  JS:  X = ${p.threejs.x}, Y = ${p.threejs.y}, Z = ${p.threejs.z}`
-                console.log(log);
-            }
-            return p;
-        }
-        return null;
-    }
-
+   
     public toString(): string | null {
         if(this.satrec === null || this.positionAtTime === null) return null;
         let log:string = "";
@@ -243,7 +199,7 @@ export class AppSat {
      * @param epoch: number 
      * @returns Date object
      */
-    public tleEpochToUTC_Num(epoch: number): Date {
+    public static tleEpochToUTC_Num(epoch: number): Date {
         // Extract YY and DDD.ddddd
         // e.g. epoch = 25313.96830531 -> yy = 25, dayOfYear = 313.96830531
         const yy = Math.floor(epoch / 1000);
@@ -268,7 +224,7 @@ export class AppSat {
      * @param epoch: string
      * @returns Date object
      */
-    public tleEpochToUTC_Str(epoch: string): Date {
+    public static tleEpochToUTC_Str(epoch: string): Date {
         const yearPart = epoch.slice(0, 2);
         const dayPart = epoch.slice(2);
         const year = 2000 + parseInt(yearPart, 10); // TLE epoch years are 2000+ for 2000-2099
@@ -280,9 +236,4 @@ export class AppSat {
         const msOffset = (dayOfYear - 1) * msPerDay;
         return new Date(jan1.getTime() + msOffset);
     }
-
-    // private wrapToPi(angleRad: number): number {
-    //     return ((angleRad + Math.PI) % (2 * Math.PI)) - Math.PI;
-    // }
-
 }

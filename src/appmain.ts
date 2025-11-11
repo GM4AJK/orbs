@@ -82,6 +82,7 @@ export class AppMain {
             this.earth.update(this.appClock.Date);
             this.lastFrameTimeMS = nowMS;
             this.renderer.render(this.scene, this.camera);
+            //console.log(`Camera: X=${this.camera.position.x}, Y=${this.camera.position.y}, Z=${this.camera.position.z}`);
         }
         //this.renderer.render(this.scene, this.camera);
     }
@@ -127,10 +128,11 @@ export class AppMain {
     }
 
     updateEarthRotation(deltaTime: number) {
-        if(deltaTime > 100 && deltaTime < 5000) { // Don't break ThreeJS
+        if(deltaTime >= 100 && deltaTime < 5000) { // Don't break ThreeJS
             // Rotate the Earth.
             const rotRate = earthRotationRate * (deltaTime/1000);
-            this.earth.earthMesh.rotation.y += rotRate;
+            //this.earth.earthMesh.rotation.y += rotRate;
+            this.earth.earth.rotation.y += rotRate;
 
             // Reposition the Sun in the ECI frame
             //const d = new Date();

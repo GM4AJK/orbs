@@ -18,9 +18,13 @@ INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PA
 */
 import * as THREE from 'three'
 
+import { Globals as Globals } from './globals.ts';
+
 import * as satellite from 'satellite.js';
+
 import { Clock as AppClock } from './clock.ts';
 import { AppSat } from './appsat.ts';
+import { AppSatMgr } from './appsatmgr';
 
 const EARTH_TILT_DEGREES = 23.4;
 
@@ -74,9 +78,10 @@ export class Earth {
     public earth: THREE.Group;
 
     private appSatArray: Map<string, AppSat>;
+    private appSatMgr:AppSatMgr | null = null;
     private appClock: AppClock;
-    private iss: AppSat | null;
-    private css: AppSat | null;
+    private iss: AppSat | null = null;
+    private css: AppSat | null = null;
     private earthRadiusKm: number = 6371; // Earth's mean radius in kilometers
     private earthMesh: THREE.Mesh;
 
@@ -88,14 +93,8 @@ export class Earth {
 
     constructor(scene: THREE.Scene | null, appClock: AppClock) {
         this.appSatArray = new Map();
-        this.iss = AppSat.Factory_FromJsonOMM(ISS);
-        if(this.iss !== null) {
-            this.appSatArray.set("iss", this.iss);
-        }
-        this.css = AppSat.Factory_FromJsonOMM(CSS);
-        if(this.css !== null) {
-            this.appSatArray.set("css", this.css);
-        }
+        this.appSatMgr = new AppSatMgr();
+        this.appSatMgr.init();
         this.earth = new THREE.Group();
         this.appClock = appClock;
         this.satelliteSpotsMap = new Map<string, THREE.Mesh>; 
@@ -125,18 +124,30 @@ export class Earth {
     private specialCases(name: string): [number, number] | [null, null] {
         // ISS and CSS are special cases so color and enlarge them
         if(name == 'ISS (ZARYA)') { 
-            return [0xff0000, 25];
+            return [0xff0000, 50];
         }
         if(name == 'CSS (TIANHE)') { 
-            return [0xffff00, 25];
+            return [0xffff00, 50];
         }
         return [null, null];
     }
 
+    private sats_loaded:boolean = false;
+
     public update(clock: Date) {
+        if(this.sats_loaded == false) {
+            if(this.appSatMgr !== null && this.appSatMgr.recs_loaded === true) {
+                this.appSatMgr.recs.forEach((element: satellite.OMMJsonObject, _index: number) => {
+                    const satobj = AppSat.Factory_FromJsonOMM(element);
+                    if(satobj !== null && satobj.line0 !== null) {
+                        this.appSatArray.set(satobj.line0, satobj);
+                    }
+                });
+                this.sats_loaded = true;
+            }
+        }
         this.appSatArray.forEach((sat:AppSat, _name:string) => {
-            let color = null;
-            let radius = null;
+            let color = null, radius = null;
             if(sat.line0 !== null) {
                 [color, radius] = this.specialCases(sat.line0);
             }
@@ -150,7 +161,11 @@ export class Earth {
                         sat.spotDispose(old);
                     }
                     this.earth.add(spot);
-                    //console.log(sat.toString());
+                    if(Globals.log_sat_updates === true && sat.line0 !== null) {  
+                        if(Globals.satNameArray.indexOf(sat.line0) > -1) {                    
+                            console.log(sat.toString());
+                        }
+                    }
                 }
             }
         });
