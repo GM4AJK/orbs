@@ -27,18 +27,6 @@ export type AppSatPosition = {
     gp: satellite.GeodeticLocation | null;
 }
 
-export function AppSatTLEFactory(line1: string, line2: string, line0: string | null): AppSat | null {
-    let sat:AppSat = new AppSat();
-    if(sat.setFromTLE(line1, line2, line0) === null) return null;
-    return sat;
-}
-
-export function AppSatJsonOOMFactory(in_oom: satellite.OMMJsonObject): AppSat | null {
-    const sat:AppSat = new AppSat();
-    if(sat.setFromJsonOOM(in_oom) === null) return null;
-    return sat;
-}
-
 export class AppSat {
 
     line0: string | null = null;
@@ -52,7 +40,7 @@ export class AppSat {
     private spot: THREE.Mesh | null = null;
     private oldSpot: THREE.Mesh | null = null;
     private spotColor: number = 0xffff00;
-    private spotRadius: number = 50;
+    private spotRadius: number = 10;
     private spotSegWidth: number = 16;
     private spotSegNum: number = 16;
 
@@ -81,11 +69,11 @@ export class AppSat {
         return sat;
     }
 
-    public update(clock: Date): AppSat | false | null {
+    public update(clock: Date, color: number | null = null, radius: number | null = null): AppSat | false | null {
         if(this.satrec === null) return false;
         if(this.positionAT(clock) === null) return null;
         if(this.updatePositionAT(clock)) {
-            this.createSpot();
+            this.createSpot(color, radius);
         }
         else {
             this.spot = null;
@@ -210,17 +198,22 @@ export class AppSat {
      * @param color 
      * @returns AppSat instance
      */
-    private createSpot(): AppSat {
+    private createSpot(in_color: number | null, in_radius: number | null): AppSat {
+        let color:number = this.spotColor;
+        if(in_color !== null) {
+            color = in_color;
+        }
+        let radius: number = this.spotRadius;
+        if(in_radius !== null) {
+            radius = in_radius;
+        }
         if(this.position !== null) {
-            const color:number = this.spotColor;
-            const geometry = new THREE.SphereGeometry(this.spotRadius, 
-                this.spotSegWidth, this.spotSegNum);
+            const geometry = new THREE.SphereGeometry(radius, this.spotSegWidth, this.spotSegNum);
             const material = new THREE.MeshBasicMaterial({ color });
             const spot = new THREE.Mesh(geometry, material); 
             spot.position.set(this.position.x, this.position.y, this.position.z);
             this.oldSpot = this.spot; // Store the previous spot so it can be removed.
             this.spot = spot;
-
         }
         return this;
     }

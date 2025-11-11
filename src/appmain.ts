@@ -3,15 +3,10 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
-//import { Earth } from 'earth'
 import { Earth } from './earth';
-//import { getSunECIPosition } from './apputils';
 import { addAxisHelperToScene } from './apputils';
-import { getSunSceneAlignedPosition } from './apputils';
 import { getSunECIPosition } from './apputils';
 import { ECIControls } from './ECIControls';
-//import { getSunECIPosition } from './apputils';
-//import * as satellite from 'satellite.js';
 import { Clock as AppClock } from './clock';
 
 const SIDEREAL_DAY_SECONDS = 86164;
@@ -54,7 +49,6 @@ export class AppMain {
         //const axesHelper = new THREE.AxesHelper(10000);
         //this.scene.add(axesHelper);
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 50000);
-        
         this.camera.position.set(10000, 10000, 10000);
         const vec = new THREE.Vector3(0, 0, 0);
         this.camera.lookAt(vec);
@@ -68,7 +62,7 @@ export class AppMain {
     main() {
         // maintain the AppClock
         this.appClock.update();
-
+        
         // Handle controls (if required)
         this.controls?.update();
 
@@ -80,15 +74,16 @@ export class AppMain {
         let nowMS = this.appClock.Date.getTime();
         let deltaMS = nowMS - this.lastFrameTimeMS;
         //this.lastFrameTimeMS = nowMS;
-        if(deltaMS > 1000) {
+        if(deltaMS > 100) {
             this.updateEarthRotation(deltaMS);
             this.updateSunPos(this.appClock.Date);
             //this.earth.addISS(this.scene, this.appClock.Date);
             //this.earth.addCSS(this.scene, this.appClock.Date);
             this.earth.update(this.appClock.Date);
             this.lastFrameTimeMS = nowMS;
+            this.renderer.render(this.scene, this.camera);
         }
-        this.renderer.render(this.scene, this.camera);
+        //this.renderer.render(this.scene, this.camera);
     }
 
     selectControls(eci: boolean = false) {
@@ -127,13 +122,13 @@ export class AppMain {
         const antiSunPos = sunDir.clone().multiplyScalar(-1);
         this.sundim.position.set(antiSunPos.x, antiSunPos.y, antiSunPos.z);
         this.scene.add(this.sundim);
-        console.log("Sun updated at " + nowtime.toUTCString());
-        console.log(`   with: ${sunDir.x}, ${sunDir.y}, ${sunDir.z}`);
+        //console.log("Sun updated at " + nowtime.toUTCString());
+        //console.log(`   with: ${sunDir.x}, ${sunDir.y}, ${sunDir.z}`);
     }
 
     updateEarthRotation(deltaTime: number) {
         if(deltaTime > 100 && deltaTime < 5000) { // Don't break ThreeJS
-            // Rotate the Earth
+            // Rotate the Earth.
             const rotRate = earthRotationRate * (deltaTime/1000);
             this.earth.earthMesh.rotation.y += rotRate;
 
