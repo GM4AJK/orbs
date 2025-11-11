@@ -93,7 +93,7 @@ export class Earth {
 
     constructor(scene: THREE.Scene | null, appClock: AppClock) {
         this.appSatArray = new Map();
-        this.appSatMgr = new AppSatMgr();
+        this.appSatMgr = new AppSatMgr(this);
         this.appSatMgr.init();
         this.earth = new THREE.Group();
         this.appClock = appClock;
@@ -113,7 +113,7 @@ export class Earth {
         const now = this.appClock.Date;
         const gmst = satellite.gstime(now);
         this.earth.rotation.y = gmst;
-        this.earth.rotation.x = THREE.MathUtils.degToRad(EARTH_TILT_DEGREES);
+        //this.earth.rotation.x = THREE.MathUtils.degToRad(EARTH_TILT_DEGREES);
         if(scene !== null) {
             this.earth.add(this.getEquator());
             this.earth.add(this.getMeridian()); 
@@ -135,35 +135,7 @@ export class Earth {
     private updateCounter: number = 0;
 
     public update(clock: Date) {
-        if(this.appSatMgr === null || this.appSatMgr.appSatsMap.size < 1) {
-            return;
-        }
-        this.updateCounter++;
-        if(this.updateCounter < 5) return; // Save time by doing only every 5 cycles.
-        this.updateCounter = 0;
-        this.appSatMgr?.appSatsMap.forEach((sat:AppSat, _satId:number) => {
-            let color = null, radius = null;
-            if(sat.line0 !== null) {
-                [color, radius] = this.specialCases(sat.line0);
-            }
-            const result = sat.update(clock, color, radius);
-            if(result !== null) {
-                const spot = sat.getSpot();
-                if(spot !== null) {
-                    const old = sat.getOldSpot();
-                    if(old !== null) {
-                        this.earth.remove(old);
-                        sat.spotDispose(old);
-                    }
-                    this.earth.add(spot);
-                    if(Globals.log_sat_updates === true && sat.line0 !== null) {  
-                        if(Globals.satNameArray.indexOf(sat.line0) > -1) {                    
-                            console.log(sat.toString());
-                        }
-                    }
-                }
-            }            
-        });
+        this.appSatMgr?.updateSatellitesNew(clock);
     }
 
     public getEarthMesh(): THREE.Mesh {

@@ -1,11 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <style>
+      /* Custom styling for the stats panel */
+      .stats-panel {
+        position: absolute !important;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        transform: scale(1.2); /* Make it bigger */
+        transform-origin: top left;
+        opacity: 0.9; /* Slight transparency */
+        border: 2px solid #00ffcc;
+        border-radius: 5px;
+        overflow: hidden;
+      }  
+    </style>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Orbs</title>
   </head>
-  <body>
+  <body style="margin:0; background:#000;">
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

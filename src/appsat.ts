@@ -37,6 +37,8 @@ export class AppSat {
     epochNumeric: number | null = null;
     satrec: satellite.SatRec | null = null;
 
+    lastPropagateDate: Date;
+
     // Internal variables to support ThreeJS plotting.
     private spot: THREE.Mesh | null = null;
     private oldSpot: THREE.Mesh | null = null;
@@ -56,7 +58,9 @@ export class AppSat {
     public posVel: satellite.PositionAndVelocity | null = null;
     public groundPoint: satellite.GeodeticLocation | null = null;
 
-    private constructor() {}
+    private constructor() {
+        this.lastPropagateDate = new Date;
+    }
 
     public static Factory_FromTLE(line1: string, line2: string, line0: string | null): AppSat | null {
         let sat:AppSat = new AppSat();
@@ -73,6 +77,7 @@ export class AppSat {
     public update(clock: Date, color: number | null = null, radius: number | null = null): AppSat | false | null {
         if(this.satrec === null) return false;
         if(this.updatePositionAT(clock)) {
+            this.lastPropagateDate = clock;
             this.createSpot(color, radius);
         }
         else {

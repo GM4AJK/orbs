@@ -17,6 +17,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THIS SOFTWARE.
 */
 import * as THREE from 'three'
+import Stats from 'three/addons/libs/stats.module.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 import { Earth } from './earth';
@@ -32,6 +33,7 @@ export class AppMain {
 
     appClock: AppClock;
     scene: THREE.Scene;
+    stats : Stats;
     camera: THREE.PerspectiveCamera;
     renderer:THREE.WebGLRenderer;
     sunlight: THREE.DirectionalLight | THREE.PointLight | null;
@@ -58,7 +60,12 @@ export class AppMain {
         this.lastFrameTimeMS = this.appClock.Date.getMilliseconds() - 1000;
         this.sunlight = null;
         this.sundim = null;
+        this.stats = new Stats();
         this.scene = new THREE.Scene();
+
+        this.stats.dom.id = "systemstats";
+        this.stats.dom.style.color = '#00FF00';
+        document.body.appendChild(this.stats.dom);
         
         addAxisHelperToScene(this.scene);
         this.scene.background = new THREE.Color(0x000010); // deep night sky
@@ -81,6 +88,9 @@ export class AppMain {
         
         // Handle controls (if required)
         this.controls?.update();
+
+        // Update the stats
+        this.stats?.update();
 
         //let nowT = this.appClock.getMilliseconds(); //Date.now();
         //this.earth.addISS(this.scene, this.appClock);
@@ -124,18 +134,19 @@ export class AppMain {
             this.scene.remove(this.sundim);
             this.sundim.dispose();
         }
-        //const sunECI = getSunECIPosition(nowtime);
-        //const sunECI = getSunSceneAlignedPosition(nowtime);
         const sunECI = getSunECIPosition(nowtime);
-        const sunDir = sunECI.clone().normalize().multiplyScalar(150e6);
-        //sunDir.applyAxisAngle(new THREE.Vector3(0,1,0), Math.PI/2);
-        this.sunlight = new THREE.DirectionalLight(0xffffff, 0.75);
+        const sunDirNormalized = sunECI.clone().normalize();
+        // Convert this from ECI Z UP to ThreeJS Y UP
+        const q = new THREE.Quaternion().setFromAxisAngle(sunDirNormalized, Math.PI);
+        sunDirNormalized.applyQuaternion(q);
+        // Now scale it out to the Sun's position in ECI.
+        const sunDir = sunDirNormalized.multiplyScalar(150e6);
+        this.sunlight = new THREE.DirectionalLight(0xffffff, 1.75);
         this.sunlight.position.copy(sunDir);
-        //this.sunlight = new THREE.PointLight(0xffffff, 1000000, 150e6, 2);
         this.sunlight.position.set(sunDir.x, sunDir.y, sunDir.z);
         this.scene.add(this.sunlight);
 
-        this.sundim = new THREE.DirectionalLight(0xB08080, 0.175);
+        this.sundim = new THREE.DirectionalLight(0xC0C0C0, 0.175);
         const antiSunPos = sunDir.clone().multiplyScalar(-1);
         this.sundim.position.set(antiSunPos.x, antiSunPos.y, antiSunPos.z);
         this.scene.add(this.sundim);
