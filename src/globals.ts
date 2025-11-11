@@ -11,10 +11,10 @@ portions of the software.
 
 THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
 INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
- FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
- OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
- DEALINGS IN THIS SOFTWARE.
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+DEALINGS IN THIS SOFTWARE.
 */
 export class Globals {
 
@@ -24,6 +24,18 @@ export class Globals {
      * to "prod" will cause downloads at app start.
      */
     public static opmode: string = 'dev';
+
+    public static localTles = [
+        "TLEs/visual.json",
+        "TLEs/stations.json",
+        //"TLEs/starlink.json",
+    ];
+
+    public static celestrakTles = [
+        "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json",
+        "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=json",
+        //"https://celestrak.org/NORAD/elements/gp.php?GROUP=starlinkl&FORMAT=json",
+    ];
 
     public static debug: boolean = true;
 

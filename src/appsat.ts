@@ -34,6 +34,7 @@ export class AppSat {
     line2: string | null = null;
 
     epoch: Date | null = null;
+    epochNumeric: number | null = null;
     satrec: satellite.SatRec | null = null;
 
     // Internal variables to support ThreeJS plotting.
@@ -80,6 +81,14 @@ export class AppSat {
         return this;
     }
 
+    public static satRecTest(satrec: satellite.SatRec, attime: Date | null): boolean {
+        if(attime === null) attime = new Date();
+        const j: number = satellite.jday(attime);
+        const m: number = (j - satrec.jdsatepoch) * 1440.0;
+        if(satellite.sgp4(satrec, m) === null) return false; 
+        return true;
+    }
+
     private updatePositionAT(in_date: Date) : boolean {
         if(this.satrec !== null) {
             const dtime: Date = new Date(in_date.getTime());
@@ -117,6 +126,7 @@ export class AppSat {
         this.satrec = satellite.twoline2satrec(this.line1, this.line2);
         if(this.satrec !== null) {
             this.epoch = AppSat.tleEpochToUTC_Num(this.satrec.jdsatepoch);
+            this.epochNumeric = Number(this.satrec.jdsatepoch);
             return this;
         }
         return null;
@@ -127,6 +137,7 @@ export class AppSat {
         if(this.satrec !== null) {
             this.line0 = in_oom.OBJECT_NAME;
             this.epoch = AppSat.tleEpochToUTC_Num(this.satrec.jdsatepoch);
+            this.epochNumeric = Number(this.satrec.jdsatepoch);
             return this;
         }
         return null;

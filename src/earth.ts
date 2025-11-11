@@ -132,21 +132,16 @@ export class Earth {
         return [null, null];
     }
 
-    private sats_loaded:boolean = false;
+    private updateCounter: number = 0;
 
     public update(clock: Date) {
-        if(this.sats_loaded == false) {
-            if(this.appSatMgr !== null && this.appSatMgr.recs_loaded === true) {
-                this.appSatMgr.recs.forEach((element: satellite.OMMJsonObject, _index: number) => {
-                    const satobj = AppSat.Factory_FromJsonOMM(element);
-                    if(satobj !== null && satobj.line0 !== null) {
-                        this.appSatArray.set(satobj.line0, satobj);
-                    }
-                });
-                this.sats_loaded = true;
-            }
+        if(this.appSatMgr === null || this.appSatMgr.appSatsMap.size < 1) {
+            return;
         }
-        this.appSatArray.forEach((sat:AppSat, _name:string) => {
+        this.updateCounter++;
+        if(this.updateCounter < 5) return; // Save time by doing only every 5 cycles.
+        this.updateCounter = 0;
+        this.appSatMgr?.appSatsMap.forEach((sat:AppSat, _satId:number) => {
             let color = null, radius = null;
             if(sat.line0 !== null) {
                 [color, radius] = this.specialCases(sat.line0);
@@ -167,7 +162,7 @@ export class Earth {
                         }
                     }
                 }
-            }
+            }            
         });
     }
 
