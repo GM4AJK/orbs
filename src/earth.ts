@@ -33,7 +33,7 @@ export class Earth {
     public earth: THREE.Group;
 
     private appSatArray: Map<string, AppSat>;
-    private appSatMgr:AppSatMgr | null = null;
+    private appSatMgr: AppSatMgr | null = null;
     private appClock: AppClock;
     private iss: AppSat | null = null;
     private css: AppSat | null = null;
@@ -52,8 +52,8 @@ export class Earth {
         this.appSatMgr.init();
         this.earth = new THREE.Group();
         this.appClock = appClock;
-        this.satelliteSpotsMap = new Map<string, THREE.Mesh>; 
-        this.satelliteOrbitsMap = new Map<string, THREE.Line>; 
+        this.satelliteSpotsMap = new Map<string, THREE.Mesh>;
+        this.satelliteOrbitsMap = new Map<string, THREE.Line>;
         const textureLoader = new THREE.TextureLoader();
         const earthTexture = textureLoader.load('textures/2_no_clouds_8k.jpg');
         const earthGeometry = new THREE.SphereGeometry(this.earthRadiusKm, 256, 256);
@@ -69,13 +69,13 @@ export class Earth {
         const gmst = satellite.gstime(now);
         this.earth.rotation.y = gmst;
         //this.earth.rotation.x = THREE.MathUtils.degToRad(EARTH_TILT_DEGREES);
-        if(scene !== null) {
+        if (scene !== null) {
             const london = this.createSurfaceSpot(51.5, -0.12, 0.1);
             this.earth.add(london);
             const edinburgh = this.createSurfaceSpot(56.5, -3.12, 0.1);
             this.earth.add(edinburgh);
             this.earth.add(this.getEquator());
-            this.earth.add(this.getMeridian()); 
+            this.earth.add(this.getMeridian());
             scene.add(this.earth);
         }
     }
@@ -98,7 +98,7 @@ export class Earth {
 
     private getMeridian(): THREE.LineLoop {
         const ring = this.createGreatCircleRing(this.earthRadiusKm + 250, 256, 0x00ff00); // Green
-        ring.rotateX(Math.PI/2);
+        ring.rotateX(Math.PI / 2);
         return ring;
     }
 
@@ -111,12 +111,12 @@ export class Earth {
      * @param alt_km  number in kilometers
      * @returns 
      */
-    public createSurfaceSpot(lat_deg: number, lon_deg: number, alt_km:number): THREE.Mesh {
+    public createSurfaceSpot(lat_deg: number, lon_deg: number, alt_km: number): THREE.Mesh {
         const ecef: THREE.Vector3 = geodeticToECEF(lat_deg, lon_deg, alt_km);
-        const color:number = 0xff00ff;
+        const color: number = 0xff00ff;
         const geometry = new THREE.SphereGeometry(50, 16, 16);
         const material = new THREE.MeshBasicMaterial({ color });
-        let spot = new THREE.Mesh(geometry, material); 
+        let spot = new THREE.Mesh(geometry, material);
         spot.position.set(ecef.x, ecef.y, ecef.z);
         return spot;
     }
@@ -124,8 +124,8 @@ export class Earth {
     private createGreatCircleRing(radius: number, segments: number, color: number): THREE.LineLoop {
         const points: THREE.Vector3[] = [];
         for (let i = 0; i <= segments; i++) {
-                const theta = (i / segments) * 2 * Math.PI;
-                points.push(new THREE.Vector3(radius * Math.cos(theta), 0, radius * Math.sin(theta)
+            const theta = (i / segments) * 2 * Math.PI;
+            points.push(new THREE.Vector3(radius * Math.cos(theta), 0, radius * Math.sin(theta)
             ));
         }
         const geometry = new THREE.BufferGeometry().setFromPoints(points);

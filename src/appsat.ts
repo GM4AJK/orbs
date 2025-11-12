@@ -63,20 +63,20 @@ export class AppSat {
     }
 
     public static Factory_FromTLE(line1: string, line2: string, line0: string | null): AppSat | null {
-        let sat:AppSat = new AppSat();
-        if(sat.setFromTLE(line1, line2, line0) === null) return null;
+        let sat: AppSat = new AppSat();
+        if (sat.setFromTLE(line1, line2, line0) === null) return null;
         return sat;
     }
 
     public static Factory_FromJsonOMM(in_oom: satellite.OMMJsonObject): AppSat | null {
-        const sat:AppSat = new AppSat();
-        if(sat.setFromJsonOOM(in_oom) === null) return null;
+        const sat: AppSat = new AppSat();
+        if (sat.setFromJsonOOM(in_oom) === null) return null;
         return sat;
     }
 
     public update(clock: Date, color: number | null = null, radius: number | null = null): AppSat | false | null {
-        if(this.satrec === null) return false;
-        if(this.updatePositionAT(clock)) {
+        if (this.satrec === null) return false;
+        if (this.updatePositionAT(clock)) {
             this.lastPropagateDate = clock;
             this.createSpot(color, radius);
         }
@@ -87,21 +87,21 @@ export class AppSat {
     }
 
     public static satRecTest(satrec: satellite.SatRec, attime: Date | null): boolean {
-        if(attime === null) attime = new Date();
+        if (attime === null) attime = new Date();
         const j: number = satellite.jday(attime);
         const m: number = (j - satrec.jdsatepoch) * 1440.0;
-        if(satellite.sgp4(satrec, m) === null) return false; 
+        if (satellite.sgp4(satrec, m) === null) return false;
         return true;
     }
 
-    private updatePositionAT(in_date: Date) : boolean {
-        if(this.satrec !== null) {
+    private updatePositionAT(in_date: Date): boolean {
+        if (this.satrec !== null) {
             const dtime: Date = new Date(in_date.getTime());
             const j: number = satellite.jday(dtime);
             const m: number = (j - this.satrec.jdsatepoch) * 1440.0;
-            this.posVel = satellite.sgp4(this.satrec, m); 
+            this.posVel = satellite.sgp4(this.satrec, m);
             const gmst: satellite.GMSTime = satellite.gstime(dtime);
-            if(!this.posVel) return false;
+            if (!this.posVel) return false;
             const posEci: satellite.EciVec3<number> = this.posVel.position;
             if (!posEci) return false;
             const posEcf = satellite.eciToEcf(posEci, gmst);
@@ -116,20 +116,20 @@ export class AppSat {
     }
 
     private calculateGeodeticGroundPoint(gmst: satellite.GMSTime): satellite.GeodeticLocation | null {
-        if(this.posVel !== null) {
+        if (this.posVel !== null) {
             const geo = satellite.eciToGeodetic(this.posVel.position, gmst);
             return geo;
         }
         return null;
     }
 
-    public setFromTLE(line1: string, line2: string, line0: string | null) : AppSat | null {
+    public setFromTLE(line1: string, line2: string, line0: string | null): AppSat | null {
         this.epoch = null;
         this.line1 = line1;
         this.line2 = line2;
         this.line0 = (line0 !== null) ? line0 : "";
         this.satrec = satellite.twoline2satrec(this.line1, this.line2);
-        if(this.satrec !== null) {
+        if (this.satrec !== null) {
             this.epoch = AppSat.tleEpochToUTC_Num(this.satrec.jdsatepoch);
             this.epochNumeric = Number(this.satrec.jdsatepoch);
             return this;
@@ -137,9 +137,9 @@ export class AppSat {
         return null;
     }
 
-    public setFromJsonOOM(in_oom: satellite.OMMJsonObject) : AppSat | null {
+    public setFromJsonOOM(in_oom: satellite.OMMJsonObject): AppSat | null {
         this.satrec = satellite.json2satrec(in_oom);
-        if(this.satrec !== null) {
+        if (this.satrec !== null) {
             this.line0 = in_oom.OBJECT_NAME;
             this.epoch = AppSat.tleEpochToUTC_Num(this.satrec.jdsatepoch);
             this.epochNumeric = Number(this.satrec.jdsatepoch);
@@ -147,19 +147,19 @@ export class AppSat {
         }
         return null;
     }
-   
+
     public toString(): string | null {
-        if(this.satrec === null || this.positionAtTime === null) return null;
-        let log:string = "";
+        if (this.satrec === null || this.positionAtTime === null) return null;
+        let log: string = "";
         log += `Sat: ${this.line0} Time: ${this.positionAtTime.toISOString()}\n`;
-        if(this.groundPoint !== null) {
-            log += `  GP: Lat: ${(this.groundPoint.latitude*180/Math.PI).toFixed(2)}°, Lon: ${(this.groundPoint.longitude*180/Math.PI).toFixed(2)}°, Alt: ${this.groundPoint.height.toFixed(3)} km\n`;
+        if (this.groundPoint !== null) {
+            log += `  GP: Lat: ${(this.groundPoint.latitude * 180 / Math.PI).toFixed(2)}°, Lon: ${(this.groundPoint.longitude * 180 / Math.PI).toFixed(2)}°, Alt: ${this.groundPoint.height.toFixed(3)} km\n`;
         }
-        if(this.posVel !== null) {
+        if (this.posVel !== null) {
             log += `   P:  x = ${this.posVel.position.x}, y = ${this.posVel.position.y}, z = ${this.posVel.position.z}\n`;
             log += `   V:  xdot = ${this.posVel.velocity.x}, ydot = ${this.posVel.velocity.y}, zdot = ${this.posVel.velocity.z}\n`;
         }
-        if(this.position !== null) {
+        if (this.position !== null) {
             log += `  JS:  X = ${this.position.x}, Y = ${this.position.y}, Z = ${this.position.z}`
         }
         return log;
@@ -171,18 +171,18 @@ export class AppSat {
      * @returns AppSat instance
      */
     private createSpot(in_color: number | null, in_radius: number | null): AppSat {
-        let color:number = this.spotColor;
-        if(in_color !== null) {
+        let color: number = this.spotColor;
+        if (in_color !== null) {
             color = in_color;
         }
         let radius: number = this.spotRadius;
-        if(in_radius !== null) {
+        if (in_radius !== null) {
             radius = in_radius;
         }
-        if(this.position !== null) {
+        if (this.position !== null) {
             const geometry = new THREE.SphereGeometry(radius, this.spotSegWidth, this.spotSegNum);
             const material = new THREE.MeshBasicMaterial({ color });
-            const spot = new THREE.Mesh(geometry, material); 
+            const spot = new THREE.Mesh(geometry, material);
             spot.position.set(this.position.x, this.position.y, this.position.z);
             this.oldSpot = this.spot; // Store the previous spot so it can be removed.
             this.spot = spot;
@@ -207,7 +207,7 @@ export class AppSat {
     public getOldSpot(): THREE.Mesh | null {
         return this.oldSpot;
     }
-    
+
     /**
      * Example usage:
      * const epoch = 25313.96830531;

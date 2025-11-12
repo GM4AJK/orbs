@@ -23,7 +23,7 @@ export class Clock {
 
 
     constructor(in_date: Date | null) {
-        if(in_date === null) {
+        if (in_date === null) {
             this.Date = new Date();
         }
         else {

@@ -39,7 +39,7 @@ export function TopocentricCoordRadToXYZ(topocentric: TopocentricCoordRadians): 
     const y = r * Math.sin(elRad);
     const z = r * Math.cos(elRad) * Math.cos(azRad);
     const v = new THREE.Vector3(x, y, z);
-    if(topocentric.range === undefined) {
+    if (topocentric.range === undefined) {
         v.normalize();
     }
     return v;
@@ -49,7 +49,7 @@ export function TopocentricCoordDegToXYZ(topocentric: TopocentricCoordDegrees): 
     return TopocentricCoordRadToXYZ({
         azimuth: THREE.MathUtils.degToRad(topocentric.azimuth),
         elevation: THREE.MathUtils.degToRad(topocentric.elevation),
-        range: topocentric.range    
+        range: topocentric.range
     });
 }
 
@@ -72,10 +72,10 @@ export function GeodeticCoorRadToXYZ(geo: GeodeticCoordDegrees, radius?: number)
     const x = Math.cos(phi) * Math.sin(theta);
     const y = Math.sin(phi);
     const z = Math.cos(phi) * Math.cos(theta);
-    const v = new THREE.Vector3(x, y, z).normalize(); 
-    if(radius !== undefined) {
+    const v = new THREE.Vector3(x, y, z).normalize();
+    if (radius !== undefined) {
         v.multiplyScalar(radius);
-    } 
+    }
     return v;
 }
 
@@ -87,9 +87,8 @@ export function GeodeticCoorRadToXYZ(geo: GeodeticCoordDegrees, radius?: number)
  * @param param0
  * @returns 
  */
-export function geodeticToEcf_fast({ longitude, latitude, height }: 
-    satellite.GeodeticLocation): satellite.EcfVec3<satellite.Kilometer> 
-{
+export function geodeticToEcf_fast({ longitude, latitude, height }:
+    satellite.GeodeticLocation): satellite.EcfVec3<satellite.Kilometer> {
     const a = 6378.137;
     const b = 6356.7523142;
     const f = (a - b) / a;
@@ -115,9 +114,8 @@ export function geodeticToEcf_fast({ longitude, latitude, height }:
  * @param gmst 
  * @returns 
  */
-export function ecfToEci_fast(ecf: satellite.EcfVec3<number>, gmst: satellite.GMSTime): 
-    satellite.EciVec3<number> 
-{
+export function ecfToEci_fast(ecf: satellite.EcfVec3<number>, gmst: satellite.GMSTime):
+    satellite.EciVec3<number> {
     // ccar.colorado.edu/ASEN5070/handouts/coordsys.doc
     //
     // [X]     [C -S  0][X]
@@ -129,7 +127,7 @@ export function ecfToEci_fast(ecf: satellite.EcfVec3<number>, gmst: satellite.GM
     const X = (ecf.x * gmst_cos) - (ecf.y * gmst_sin);
     const Y = (ecf.x * (gmst_sin)) + (ecf.y * gmst_cos);
     const Z = ecf.z;
-  return { x: X, y: Y, z: Z };
+    return { x: X, y: Y, z: Z };
 }
 
 export function geodeticToECI_Yup(latDeg: number, lonDeg: number, altKm: number, gmst: number): THREE.Vector3 {
@@ -140,7 +138,7 @@ export function geodeticToECI_Yup(latDeg: number, lonDeg: number, altKm: number,
     //const eci = ecfToEci_fast(ecef, gmst);
     const ecef = satellite.geodeticToEcf({ latitude: latRad, longitude: lonRad, height: altKm });
     const eci = satellite.ecfToEci(ecef, 0); //gmst);
-    
+
     const eciVec = new THREE.Vector3(eci.x, eci.y, eci.z);
     const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
     eciVec.applyQuaternion(q);
@@ -172,7 +170,7 @@ export function GeodeticCoordDegToXYZ(geo: GeodeticCoordDegrees, radius?: number
         latitude: THREE.MathUtils.degToRad(geo.latitude),
         longitude: THREE.MathUtils.degToRad(geo.longitude),
         altitude: geo.altitude
-    }, radius); 
+    }, radius);
 }
 
 export function getSunECIPositionSatLib(date: Date): THREE.Vector3 {
@@ -185,7 +183,7 @@ export function getSunECIPositionSatLib(date: Date): THREE.Vector3 {
 
 export function getSunInScene(date: Date): THREE.Vector3 {
     const sunECI = getSunECIPosition(date);
-    const sunScene = sunECI.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), (-Math.PI/2 * 1.25));
+    const sunScene = sunECI.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), (-Math.PI / 2 * 1.25));
     return sunScene;
 }
 
@@ -251,7 +249,7 @@ export function getSunSceneAlignedPosition(date: Date): THREE.Vector3 {
     const z = Math.sin(epsRad) * Math.sin(lonRad);
     const sunECI = new THREE.Vector3(x, y, z).multiplyScalar(AU);
     // Rotate +90° around Y to match Three.js scene alignment
-    return sunECI.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI/2);
+    return sunECI.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
 }
 
 export function eciToEcf(x: number, y: number, z: number, gmst: number): { x: number; y: number; z: number } {

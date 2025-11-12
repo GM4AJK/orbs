@@ -39,19 +39,19 @@ export class AppSatMgr {
         this.earth = earth;
         this.appSatsMap = new Map<number, AppSat>;
         this.appSatsArrayMap = new Array<Map<number, AppSat>>;
-        for(let i:number = 0; i < this.numOfArrays; i++) {
+        for (let i: number = 0; i < this.numOfArrays; i++) {
             const map = new Map<number, AppSat>;
             this.appSatsArrayMap[i] = map;
         }
     }
 
     private hasSat(satId: number): [number, number, number] | null {
-        for(let i = 0; i < this.numOfArrays; i++) {
-            if(this.appSatsArrayMap[i].has(satId)) {
-                const appSat:AppSat | undefined = this.appSatsArrayMap[i].get(satId);
-                if(appSat !== undefined) {
+        for (let i = 0; i < this.numOfArrays; i++) {
+            if (this.appSatsArrayMap[i].has(satId)) {
+                const appSat: AppSat | undefined = this.appSatsArrayMap[i].get(satId);
+                if (appSat !== undefined) {
                     const epochValue = appSat.epochNumeric;
-                    if(epochValue !== null) {
+                    if (epochValue !== null) {
                         return [satId, i, epochValue];
                     }
                 }
@@ -60,57 +60,57 @@ export class AppSatMgr {
         return null;
     }
 
-    private replaceSat(index: number, satId: number, a:AppSat) {
+    private replaceSat(index: number, satId: number, a: AppSat) {
         this.appSatsArrayMap[index].delete(satId);
         this.appSatsArrayMap[index].set(satId, a);
     }
 
     async init(filename: string = "TLEs/visual.json"): Promise<void> {
-        if(Globals.opmode == "prd") {
+        if (Globals.opmode == "prd") {
             filename = "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json";
         }
         console.log(`Loading ${filename}...`);
         const response = await fetch(filename);
         const data = await response.json();
-        const d:Date = new Date();
-        let loopIndex:number = 0;
+        const d: Date = new Date();
+        let loopIndex: number = 0;
         data.forEach((record: satellite.OMMJsonObject, _index: number) => {
-            if(record !== null) {
+            if (record !== null) {
                 const satId: number = Number(record.NORAD_CAT_ID);
                 const s: satellite.SatRec = satellite.json2satrec(record);
-                if(AppSat.satRecTest(s, d)) { // Test the TLE can propagate.
+                if (AppSat.satRecTest(s, d)) { // Test the TLE can propagate.
                     const a = AppSat.Factory_FromJsonOMM(record);
-                    if(a !== null) {
+                    if (a !== null) {
                         //          satId   index   epochNum
                         const has: [number, number, number] | null = this.hasSat(satId);
-                        if(has !== null) {
+                        if (has !== null) {
                             const index: number = has[1];
                             const otherEpoch: number = has[2];
                             const myEpoch: number | null = a.epochNumeric;
-                            if(myEpoch !== null) {                        
-                                if(myEpoch > otherEpoch) {
+                            if (myEpoch !== null) {
+                                if (myEpoch > otherEpoch) {
                                     this.replaceSat(index, satId, a);
                                 }
                             }
                         }
                         else {
                             this.appSatsArrayMap[loopIndex++].set(satId, a);
-                            if(loopIndex >= this.numOfArrays) loopIndex = 0;
+                            if (loopIndex >= this.numOfArrays) loopIndex = 0;
                         }
-                        if(this.appSatsMap.has(satId)) {
-                            const inlist:AppSat | undefined = this.appSatsMap.get(satId);
-                            if(inlist && a.epochNumeric!= null && inlist.epochNumeric != null) {
+                        if (this.appSatsMap.has(satId)) {
+                            const inlist: AppSat | undefined = this.appSatsMap.get(satId);
+                            if (inlist && a.epochNumeric != null && inlist.epochNumeric != null) {
                                 const otherEpoch = AppSat.tleEpochToUTC_Num(inlist.epochNumeric);
                                 const thisEpoch = AppSat.tleEpochToUTC_Num(a.epochNumeric);
-                                if(thisEpoch > otherEpoch) {
+                                if (thisEpoch > otherEpoch) {
                                     // This is a newer TLE, remove the older one from the list and insert this one
                                     this.appSatsMap.delete(satId);
-                                    this.appSatsMap.set(satId, a);        
+                                    this.appSatsMap.set(satId, a);
                                 }
                             }
                         }
                         else {
-                            this.appSatsMap.set(satId, a);                            
+                            this.appSatsMap.set(satId, a);
                         }
                     }
                 }
@@ -121,75 +121,75 @@ export class AppSatMgr {
     }
 
     public updateSatellites(clock: Date) {
-        if(this.appSatsMap.size < 1) {
+        if (this.appSatsMap.size < 1) {
             return;
         }
-        this.appSatsMap.forEach((sat:AppSat, _satId:number) => {
+        this.appSatsMap.forEach((sat: AppSat, _satId: number) => {
             let color = null, radius = null;
-            if(sat.line0 !== null) {
+            if (sat.line0 !== null) {
                 [color, radius] = this.specialCases(sat.line0);
             }
             const result = sat.update(clock, color, radius);
-            if(result !== null) {
+            if (result !== null) {
                 const spot = sat.getSpot();
-                if(spot !== null) {
+                if (spot !== null) {
                     const old = sat.getOldSpot();
-                    if(old !== null) {
+                    if (old !== null) {
                         this.earth.earth.remove(old);
                         sat.spotDispose(old);
                     }
                     this.earth.earth.add(spot);
-                    if(Globals.log_sat_updates === true && sat.line0 !== null) {  
-                        if(Globals.satNameArray.indexOf(sat.line0) > -1) {                    
+                    if (Globals.log_sat_updates === true && sat.line0 !== null) {
+                        if (Globals.satNameArray.indexOf(sat.line0) > -1) {
                             console.log(sat.toString());
                         }
                     }
                 }
-            }            
+            }
         });
     }
 
     private lastIndexUpdated: number = 0;
 
     public updateSatellitesNew(clock: Date) {
-        if(this.appSatsMap.size < 1) {
+        if (this.appSatsMap.size < 1) {
             return;
         }
-        const map:Map<number, AppSat> = this.appSatsArrayMap[this.lastIndexUpdated++];
-        if(this.lastIndexUpdated >= this.numOfArrays) {
+        const map: Map<number, AppSat> = this.appSatsArrayMap[this.lastIndexUpdated++];
+        if (this.lastIndexUpdated >= this.numOfArrays) {
             this.lastIndexUpdated = 0;
         }
-        map.forEach((sat:AppSat, _satId:number) => {
+        map.forEach((sat: AppSat, _satId: number) => {
             let color = null, radius = null;
-            if(sat.line0 !== null) {
+            if (sat.line0 !== null) {
                 [color, radius] = this.specialCases(sat.line0);
             }
             const result = sat.update(clock, color, radius);
-            if(result !== null) {
+            if (result !== null) {
                 const spot = sat.getSpot();
-                if(spot !== null) {
+                if (spot !== null) {
                     const old = sat.getOldSpot();
-                    if(old !== null) {
+                    if (old !== null) {
                         this.earth.earth.remove(old);
                         sat.spotDispose(old);
                     }
                     this.earth.earth.add(spot);
-                    if(Globals.log_sat_updates === true && sat.line0 !== null) {  
-                        if(Globals.satNameArray.indexOf(sat.line0) > -1) {                    
+                    if (Globals.log_sat_updates === true && sat.line0 !== null) {
+                        if (Globals.satNameArray.indexOf(sat.line0) > -1) {
                             console.log(sat.toString());
                         }
                     }
                 }
-            }            
+            }
         });
     }
 
     private specialCases(name: string): [number, number] | [null, null] {
         // ISS and CSS are special cases so color and enlarge them
-        if(name == 'ISS (ZARYA)') { 
+        if (name == 'ISS (ZARYA)') {
             return [0xff0000, 50];
         }
-        if(name == 'CSS (TIANHE)') { 
+        if (name == 'CSS (TIANHE)') {
             return [0xffff00, 50];
         }
         return [null, null];
