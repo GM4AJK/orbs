@@ -25,6 +25,7 @@ import { addAxisHelperToScene } from './apputils';
 import { getSunECIPosition } from './apputils';
 import { ECIControls } from './ECIControls';
 import { Clock as AppClock } from './clock';
+import { Globals } from './globals';
 
 const SIDEREAL_DAY_SECONDS = 86164;
 const earthRotationRate = (2 * Math.PI) / SIDEREAL_DAY_SECONDS;
@@ -50,7 +51,7 @@ export class AppMain {
     // +Y = north pole
     // +Z = completes the right handed system
 
-    constructor() {
+    public constructor() {
         // this.firstrun = true;
         // this.lastsuntime = new Date();
         // this.futuresuntime = new Date();
@@ -68,9 +69,7 @@ export class AppMain {
         document.body.appendChild(this.stats.dom);
         
         addAxisHelperToScene(this.scene);
-        this.scene.background = new THREE.Color(0x000010); // deep night sky
-        //const axesHelper = new THREE.AxesHelper(10000);
-        //this.scene.add(axesHelper);
+        this.scene.background = new THREE.Color(0x101010); // deep night sky
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 50000);
         this.camera.position.set(10000, 10000, 10000);
         const vec = new THREE.Vector3(0, 0, 0);
@@ -82,7 +81,7 @@ export class AppMain {
         document.body.appendChild(this.renderer.domElement);
     }
 
-    main() {
+    public main() {
         // maintain the AppClock
         this.appClock.update();
         
@@ -113,7 +112,7 @@ export class AppMain {
         //this.renderer.render(this.scene, this.camera);
     }
 
-    selectControls(eci: boolean = false) {
+    private selectControls(eci: boolean = false) {
         if(eci === false) {
             this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         }
@@ -125,11 +124,14 @@ export class AppMain {
         }
     }
 
-    updateSunPos(nowtime: Date) {
+    private updateSunPos(nowtime: Date) {
         if(this.sunlight !== null) {
             this.scene.remove(this.sunlight);
             this.sunlight.dispose();
         }
+        // Sun "dim" genetally highlights the night side of the
+        // Earth otherwise it's just a black circle and nothing
+        // can be seen. It's positioned opposite to the Sun.
         if(this.sundim !== null) {
             this.scene.remove(this.sundim);
             this.sundim.dispose();
@@ -145,24 +147,22 @@ export class AppMain {
         this.sunlight.position.copy(sunDir);
         this.sunlight.position.set(sunDir.x, sunDir.y, sunDir.z);
         this.scene.add(this.sunlight);
-
         this.sundim = new THREE.DirectionalLight(0xC0C0C0, 0.175);
         const antiSunPos = sunDir.clone().multiplyScalar(-1);
         this.sundim.position.set(antiSunPos.x, antiSunPos.y, antiSunPos.z);
         this.scene.add(this.sundim);
-        //console.log("Sun updated at " + nowtime.toUTCString());
-        //console.log(`   with: ${sunDir.x}, ${sunDir.y}, ${sunDir.z}`);
+        if(Globals.log_sun_position_updates) {
+            console.log("Sun updated at " + nowtime.toUTCString());
+            console.log(`   with: ${sunDir.x}, ${sunDir.y}, ${sunDir.z}`);
+        }
     }
 
-    updateEarthRotation(deltaTime: number) {
+    private updateEarthRotation(deltaTime: number) {
         if(deltaTime >= 100 && deltaTime < 5000) { // Don't break ThreeJS
             // Rotate the Earth.
             const rotRate = earthRotationRate * (deltaTime/1000);
-            //this.earth.earthMesh.rotation.y += rotRate;
             this.earth.earth.rotation.y += rotRate;
-
             // Reposition the Sun in the ECI frame
-            //const d = new Date();
             this.updateSunPos(this.appClock.Date);
         }
     }

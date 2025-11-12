@@ -25,7 +25,6 @@ import * as satellite from 'satellite.js';
 import { Clock as AppClock } from './clock.ts';
 import { AppSat } from './appsat.ts';
 import { AppSatMgr } from './appsatmgr.ts';
-import { geodeticToECI_Yup } from './apputils.ts';
 import { geodeticToECEF } from './apputils.ts';
 
 export class Earth {

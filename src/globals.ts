@@ -50,4 +50,7 @@ export class Globals {
         'ISS (ZARYA)',
     ];
 
+    
+    public static log_sun_position_updates: boolean = false;
+
 }
