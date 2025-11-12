@@ -49,7 +49,8 @@ export class Earth {
     constructor(scene: THREE.Scene | null, appClock: AppClock) {
         this.appSatArray = new Map();
         this.appSatMgr = new AppSatMgr(this);
-        this.appSatMgr.init();
+        //this.appSatMgr.init();
+        this.appSatMgr.init("TLEs/starlink/grouped_shells_json/shell_300km/plane_20.json");
         this.earth = new THREE.Group();
         this.appClock = appClock;
         this.satelliteSpotsMap = new Map<string, THREE.Mesh>;

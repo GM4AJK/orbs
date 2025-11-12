@@ -65,11 +65,71 @@ export class AppSatMgr {
         this.appSatsArrayMap[index].set(satId, a);
     }
 
-    async init(filename: string = "TLEs/visual.json"): Promise<void> {
+    private starlinkShells(): String {
+        const dir = Globals.starlinkShellsDir;
+        return "";
+    }
+
+    async init(filename: string = "TLEs/stations.json"): Promise<void> {
         if (Globals.opmode == "prd") {
             filename = "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json";
         }
         console.log(`Loading ${filename}...`);
+        const response = await fetch(filename);
+        const data = await response.json();
+        const d: Date = new Date();
+        let loopIndex: number = 0;
+        data.forEach((record: satellite.OMMJsonObject, _index: number) => {
+            if (record !== null) {
+                const satId: number = Number(record.NORAD_CAT_ID);
+                const s: satellite.SatRec = satellite.json2satrec(record);
+                if (AppSat.satRecTest(s, d)) { // Test the TLE can propagate.
+                    const a = AppSat.Factory_FromJsonOMM(record);
+                    if (a !== null) {
+                        //          satId   index   epochNum
+                        const has: [number, number, number] | null = this.hasSat(satId);
+                        if (has !== null) {
+                            const index: number = has[1];
+                            const otherEpoch: number = has[2];
+                            const myEpoch: number | null = a.epochNumeric;
+                            if (myEpoch !== null) {
+                                if (myEpoch > otherEpoch) {
+                                    this.replaceSat(index, satId, a);
+                                }
+                            }
+                        }
+                        else {
+                            this.appSatsArrayMap[loopIndex++].set(satId, a);
+                            if (loopIndex >= this.numOfArrays) loopIndex = 0;
+                        }
+                        if (this.appSatsMap.has(satId)) {
+                            const inlist: AppSat | undefined = this.appSatsMap.get(satId);
+                            if (inlist && a.epochNumeric != null && inlist.epochNumeric != null) {
+                                const otherEpoch = AppSat.tleEpochToUTC_Num(inlist.epochNumeric);
+                                const thisEpoch = AppSat.tleEpochToUTC_Num(a.epochNumeric);
+                                if (thisEpoch > otherEpoch) {
+                                    // This is a newer TLE, remove the older one from the list and insert this one
+                                    this.appSatsMap.delete(satId);
+                                    this.appSatsMap.set(satId, a);
+                                }
+                            }
+                        }
+                        else {
+                            this.appSatsMap.set(satId, a);
+                        }
+                    }
+                }
+            }
+        });
+        console.log(`Done.`);
+        this.recs_loaded = true;
+    }
+
+    async initStarlinkPlane(filename: string = "TLEs/starlink/grouped_shells_json/shell_300km/plane_0.json"): Promise<void> {
+        if (Globals.opmode == "prd") {
+            filename = "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json";
+        }
+        console.log(`Loading ${filename}`);
         const response = await fetch(filename);
         const data = await response.json();
         const d: Date = new Date();

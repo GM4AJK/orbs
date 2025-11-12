@@ -51,6 +51,11 @@ export class Globals {
     ];
 
 
+    public static starlinkShellsDir: Array<string> = [
+        "public/TLEs/starlink/grouped_shells",
+    ];
+
+
     public static log_sun_position_updates: boolean = false;
 
 }
