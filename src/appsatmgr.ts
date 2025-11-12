@@ -65,7 +65,7 @@ export class AppSatMgr {
         this.appSatsArrayMap[index].set(satId, a);
     }
 
-    async init(filename: string = "TLEs/starlink.json"): Promise<void> {
+    async init(filename: string = "TLEs/visual.json"): Promise<void> {
         if(Globals.opmode == "prd") {
             filename = "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json";
         }

@@ -18,59 +18,15 @@ INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PA
 */
 import * as THREE from 'three'
 
-import { Globals as Globals } from './globals.ts';
+//import { Globals as Globals } from './globals.ts';
 
 import * as satellite from 'satellite.js';
 
 import { Clock as AppClock } from './clock.ts';
 import { AppSat } from './appsat.ts';
-import { AppSatMgr } from './appsatmgr';
-
-const EARTH_TILT_DEGREES = 23.4;
-
-const ISS: satellite.OMMJsonObject = {
-    "OBJECT_NAME": "ISS (ZARYA)",
-    "OBJECT_ID": "1998-067A",
-    "EPOCH": "2025-11-10T19:21:41.474592",
-    "MEAN_MOTION": 15.49512626,
-    "ECCENTRICITY": 0.00041371,
-    "INCLINATION": 51.6337,
-    "RA_OF_ASC_NODE": 300.5531,
-    "ARG_OF_PERICENTER": 56.1394,
-    "MEAN_ANOMALY": 303.9988,
-    "EPHEMERIS_TYPE": 0,
-    "CLASSIFICATION_TYPE": "U",
-    "NORAD_CAT_ID": 25544,
-    "ELEMENT_SET_NO": 999,
-    "REV_AT_EPOCH": 53790,
-    "BSTAR": 0.00020668468,
-    "MEAN_MOTION_DOT": 0.00011159,
-    "MEAN_MOTION_DDOT": 0
-  };
-
-  const CSS: satellite.OMMJsonObject =  {
-    "OBJECT_NAME": "CSS (TIANHE)",
-    "OBJECT_ID": "2021-035A",
-    "EPOCH": "2025-11-10T22:38:39.077376",
-    "MEAN_MOTION": 15.60859823,
-    "ECCENTRICITY": 0.00047056,
-    "INCLINATION": 41.4651,
-    "RA_OF_ASC_NODE": 209.7335,
-    "ARG_OF_PERICENTER": 1.026,
-    "MEAN_ANOMALY": 359.0588,
-    "EPHEMERIS_TYPE": 0,
-    "CLASSIFICATION_TYPE": "U",
-    "NORAD_CAT_ID": 48274,
-    "ELEMENT_SET_NO": 999,
-    "REV_AT_EPOCH": 25906,
-    "BSTAR": 0.0004154796,
-    "MEAN_MOTION_DOT": 0.00035552,
-    "MEAN_MOTION_DDOT": 0
-  };
-
-// const iss_l0: string = "ISS (ZARYA)";
-// const iss_l1: string = "1 25544U 98067A   25313.96830531  .00008626  00000+0  16179-3 0  9997";
-// const iss_l2: string = "2 25544  51.6342 304.7042 0004075  52.7615 307.3745 15.49490024537771";
+import { AppSatMgr } from './appsatmgr.ts';
+import { geodeticToECI_Yup } from './apputils.ts';
+import { geodeticToECEF } from './apputils.ts';
 
 export class Earth {
 
@@ -115,21 +71,14 @@ export class Earth {
         this.earth.rotation.y = gmst;
         //this.earth.rotation.x = THREE.MathUtils.degToRad(EARTH_TILT_DEGREES);
         if(scene !== null) {
+            const london = this.createSurfaceSpot(51.5, -0.12, 0.1);
+            this.earth.add(london);
+            const edinburgh = this.createSurfaceSpot(56.5, -3.12, 0.1);
+            this.earth.add(edinburgh);
             this.earth.add(this.getEquator());
             this.earth.add(this.getMeridian()); 
             scene.add(this.earth);
         }
-    }
-
-    private specialCases(name: string): [number, number] | [null, null] {
-        // ISS and CSS are special cases so color and enlarge them
-        if(name == 'ISS (ZARYA)') { 
-            return [0xff0000, 50];
-        }
-        if(name == 'CSS (TIANHE)') { 
-            return [0xffff00, 50];
-        }
-        return [null, null];
     }
 
     private updateCounter: number = 0;
@@ -152,6 +101,25 @@ export class Earth {
         const ring = this.createGreatCircleRing(this.earthRadiusKm + 250, 256, 0x00ff00); // Green
         ring.rotateX(Math.PI/2);
         return ring;
+    }
+
+    /**
+     * Note, when adding surface markers like a spot to the this.earth object
+     * then time (gmst) does not need to be considered as the this.earth object
+     * is rotated as required and carries along with it any child objects.
+     * @param lat_deg number in degrees
+     * @param lon_deg number in degrees
+     * @param alt_km  number in kilometers
+     * @returns 
+     */
+    public createSurfaceSpot(lat_deg: number, lon_deg: number, alt_km:number): THREE.Mesh {
+        const ecef: THREE.Vector3 = geodeticToECEF(lat_deg, lon_deg, alt_km);
+        const color:number = 0xff00ff;
+        const geometry = new THREE.SphereGeometry(50, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ color });
+        let spot = new THREE.Mesh(geometry, material); 
+        spot.position.set(ecef.x, ecef.y, ecef.z);
+        return spot;
     }
 
     private createGreatCircleRing(radius: number, segments: number, color: number): THREE.LineLoop {

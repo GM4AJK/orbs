@@ -79,6 +79,94 @@ export function GeodeticCoorRadToXYZ(geo: GeodeticCoordDegrees, radius?: number)
     return v;
 }
 
+/**
+ * This is satellite.geodeticToEcf() function but rewrite
+ * to remove the repeated calls to Math functions and only
+ * doing them once.
+ * @ref https://github.com/shashwatak/satellite-js/blob/develop/src/transforms.ts#L47
+ * @param param0
+ * @returns 
+ */
+export function geodeticToEcf_fast({ longitude, latitude, height }: 
+    satellite.GeodeticLocation): satellite.EcfVec3<satellite.Kilometer> 
+{
+    const a = 6378.137;
+    const b = 6356.7523142;
+    const f = (a - b) / a;
+    const e2 = ((2 * f) - (f * f));
+    const lat_sin: number = Math.sin(latitude);
+    const lat_cos: number = Math.cos(latitude);
+    const lon_sin: number = Math.sin(longitude);
+    const lon_cos: number = Math.cos(longitude);
+    const normal = a / Math.sqrt(1 - (e2 * (lat_sin * lat_sin)));
+    const norm_height = normal + height;
+    const x = norm_height * lat_cos * lon_cos;
+    const y = norm_height * lat_cos * lon_sin;
+    const z = ((normal * (1 - e2)) + height) * lat_sin;
+    return { x, y, z };
+}
+
+/**
+ * This is satellite.ecfToEci() function but rewrite
+ * to remove the repeated calls to Math functions and only
+ * doing them once.
+ * @ref https://github.com/shashwatak/satellite-js/blob/develop/src/transforms.ts#L101C1-L112C2
+ * @param ecf 
+ * @param gmst 
+ * @returns 
+ */
+export function ecfToEci_fast(ecf: satellite.EcfVec3<number>, gmst: satellite.GMSTime): 
+    satellite.EciVec3<number> 
+{
+    // ccar.colorado.edu/ASEN5070/handouts/coordsys.doc
+    //
+    // [X]     [C -S  0][X]
+    // [Y]  =  [S  C  0][Y]
+    // [Z]eci  [0  0  1][Z]ecf
+    //
+    const gmst_cos: number = Math.cos(gmst);
+    const gmst_sin: number = Math.sin(gmst);
+    const X = (ecf.x * gmst_cos) - (ecf.y * gmst_sin);
+    const Y = (ecf.x * (gmst_sin)) + (ecf.y * gmst_cos);
+    const Z = ecf.z;
+  return { x: X, y: Y, z: Z };
+}
+
+export function geodeticToECI_Yup(latDeg: number, lonDeg: number, altKm: number, gmst: number): THREE.Vector3 {
+    const latRad = satellite.degreesToRadians(latDeg);
+    const lonRad = satellite.degreesToRadians(lonDeg);
+    //const gmst = satellite.gstime(utcDate);
+    //const ecef = geodeticToEcf_fast({ latitude: latRad, longitude: lonRad, height: altKm });
+    //const eci = ecfToEci_fast(ecef, gmst);
+    const ecef = satellite.geodeticToEcf({ latitude: latRad, longitude: lonRad, height: altKm });
+    const eci = satellite.ecfToEci(ecef, 0); //gmst);
+    
+    const eciVec = new THREE.Vector3(eci.x, eci.y, eci.z);
+    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+    eciVec.applyQuaternion(q);
+    return eciVec;
+
+    // Everyone loves a Quaternion but the following is alot faster to go 
+    // from Z-up to Y-up than using a Quaternion in a non-dynamic frame (stoopid AI).
+    return new THREE.Vector3(eci.x, eci.z, -eci.y);
+}
+
+export function geodeticToECEF(latDeg: number, lonDeg: number, altKm: number): THREE.Vector3 {
+    const latRad = satellite.degreesToRadians(latDeg);
+    const lonRad = satellite.degreesToRadians(lonDeg);
+    const ecef = satellite.geodeticToEcf({
+        latitude: latRad,
+        longitude: lonRad,
+        height: altKm,
+    });
+
+    // Convert to Three.js Y-up: ECEF is already Z-up, so rotate -90° around X
+    const vec = new THREE.Vector3(ecef.x, ecef.y, ecef.z);
+    vec.applyAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+    return vec;
+}
+
+
 export function GeodeticCoordDegToXYZ(geo: GeodeticCoordDegrees, radius?: number): THREE.Vector3 {
     return GeodeticCoorRadToXYZ({
         latitude: THREE.MathUtils.degToRad(geo.latitude),
