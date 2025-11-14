@@ -60,7 +60,7 @@ export class Earth {
         this.material = new THREE.MeshPhongMaterial({
             map: earthTexture,
             shininess: 5,
-            transparent: true,
+            transparent: false,
             opacity: 0.25,
         });
         const mesh = new THREE.Mesh(earthGeometry, this.material); // Default alignment is meridian aligned X axis

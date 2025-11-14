@@ -46,7 +46,7 @@ export class AppMain {
 
     public constructor() {
         this.appClock = new AppClock(new Date());
-        this.appClock.setSpeed(1000);
+        this.appClock.setSpeed(100000);
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x101010); // deep night sky
         // The large distance is needed to pick out the simulated Sun -----------------------------v

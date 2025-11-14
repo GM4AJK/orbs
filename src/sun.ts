@@ -29,13 +29,14 @@ export class Sun {
 
     private sun: THREE.Group;
     private color: number = 0xfffff;
-    private intensity: number = 5000;
+    private intensity: number = 4;
     private light: THREE.DirectionalLight | null;
     private lightvec: THREE.Vector3 | null = null;
     private sphere: THREE.Mesh;
     private target: THREE.Object3D | null = null;
     private scene: THREE.Scene | null = null;
     private helper: THREE.DirectionalLightHelper | null = null;
+
 
     constructor(
         appMain: AppMain,
@@ -106,10 +107,10 @@ export class Sun {
         dirNormalized.applyQuaternion(q);
         this.lightvec = dirNormalized.multiplyScalar(APPUTILS.km(SUN_DISTANCE));
         this.sun.position.copy(this.lightvec);
-        const distance = this.lightvec.distanceTo(new THREE.Vector3(0,0,0));
-        if(this.sphere !== null) {
-            this.sphere.position.copy(this.lightvec);
-        }
+        this.light?.position.copy(this.lightvec);
+        this.sphere?.position.copy(this.lightvec);
+        //@ts-ignore distance, here for debugging.
+        //const distance = this.lightvec.distanceTo(new THREE.Vector3(0,0,0)); 
     }
 
     private getSimSun(): THREE.Mesh {
