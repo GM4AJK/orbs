@@ -20,108 +20,72 @@ import * as THREE from 'three'
 import Stats from 'three/addons/libs/stats.module.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
+import { Sun } from './sun.ts';
 import { Earth } from './earth';
-import { addAxisHelperToScene } from './apputils';
-import { getSunECIPosition } from './apputils';
-import { ECIControls } from './ECIControls';
 import { Clock as AppClock } from './clock';
 import { Globals } from './globals';
+import { APPUTILS } from './apputils';
 
-const SIDEREAL_DAY_SECONDS = 86164;
-const earthRotationRate = (2 * Math.PI) / SIDEREAL_DAY_SECONDS;
+// How THREE axis are aligned.
+// +X = vernal equinox
+// +Y = north pole
+// +Z = completes the right handed system
 
 export class AppMain {
 
-    appClock: AppClock;
-    scene: THREE.Scene;
-    stats: Stats;
-    camera: THREE.PerspectiveCamera;
-    renderer: THREE.WebGLRenderer;
-    sunlight: THREE.DirectionalLight | THREE.PointLight | null;
-    sundim: THREE.DirectionalLight | THREE.PointLight | null;
-    controls: OrbitControls | ECIControls | null;
+    public appClock: AppClock;
+    public scene: THREE.Scene;
+    public camera: THREE.PerspectiveCamera;
+    public renderer: THREE.WebGLRenderer;
+    
+    public sun: Sun;
+    public earth: Earth;
 
-    currFrameTimeMS: number;
-    lastFrameTimeMS: number;
-
-    earth: any;
-
-    // How THREE axis are aligned.
-    // +X = vernal equinox
-    // +Y = north pole
-    // +Z = completes the right handed system
+    private stats: Stats;
+    private controls: OrbitControls;
 
     public constructor() {
-        // this.firstrun = true;
-        // this.lastsuntime = new Date();
-        // this.futuresuntime = new Date();
         this.appClock = new AppClock(new Date());
-        this.controls = null;
-        this.currFrameTimeMS = this.appClock.Date.getMilliseconds();
-        this.lastFrameTimeMS = this.appClock.Date.getMilliseconds() - 1000;
-        this.sunlight = null;
-        this.sundim = null;
-        this.stats = new Stats();
+        this.appClock.setSpeed(1000);
         this.scene = new THREE.Scene();
-
-        this.stats.dom.id = "systemstats";
-        this.stats.dom.style.color = '#00FF00';
-        document.body.appendChild(this.stats.dom);
-
-        addAxisHelperToScene(this.scene);
         this.scene.background = new THREE.Color(0x101010); // deep night sky
-        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 50000);
-        this.camera.position.set(10000, 10000, 10000);
+        // The large distance is needed to pick out the simulated Sun -----------------------------v
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 350000); 
+        this.camera.position.set(100, 0, 0);
         const vec = new THREE.Vector3(0, 0, 0);
         this.camera.lookAt(vec);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.earth = new Earth(this.scene, this.appClock);
-        this.selectControls(false);
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.stats = new Stats();
+        this.stats.dom.id = "systemstats";
+        this.stats.dom.style.color = '#00FF00';
+        this.earth = new Earth(this);
+        if(Globals.showWorldAxisHelperArrows === true) {
+           this.scene.add(APPUTILS.createWorldAxisHelper(20));
+        }
+        if(Globals.useAmbientLight === true) {
+            const ambientLight = new THREE.AmbientLight( Globals.ambientLightValue );
+            this.scene.add(ambientLight);
+        }
+        this.sun = new Sun(this);
+        this.scene.add(this.sun.sun);
         document.body.appendChild(this.renderer.domElement);
+        document.body.appendChild(this.stats.dom);
     }
 
-    public main() {
+    public animate() {
         // maintain the AppClock
         this.appClock.update();
-
         // Handle controls (if required)
         this.controls?.update();
-
         // Update the stats
         this.stats?.update();
-
-        //let nowT = this.appClock.getMilliseconds(); //Date.now();
-        //this.earth.addISS(this.scene, this.appClock);
-        //let delaTime: number = nowT - this.lastFrameTime;
-        //let delaTime: number = this.appClock
-
-        let nowMS = this.appClock.Date.getTime();
-        let deltaMS = nowMS - this.lastFrameTimeMS;
-        //this.lastFrameTimeMS = nowMS;
-        if (deltaMS > 100) {
-            this.updateEarthRotation(deltaMS);
-            this.updateSunPos(this.appClock.Date);
-            //this.earth.addISS(this.scene, this.appClock.Date);
-            //this.earth.addCSS(this.scene, this.appClock.Date);
-            this.earth.update(this.appClock.Date);
-            this.lastFrameTimeMS = nowMS;
-            this.renderer.render(this.scene, this.camera);
-            //console.log(`Camera: X=${this.camera.position.x}, Y=${this.camera.position.y}, Z=${this.camera.position.z}`);
-        }
-        //this.renderer.render(this.scene, this.camera);
-    }
-
-    private selectControls(eci: boolean = false) {
-        if (eci === false) {
-            this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-        }
-        else {
-            this.controls = new ECIControls(this.camera, this.renderer.domElement);
-            this.scene.up.set(0, 0, 1); // Because ECI is +Z UP
-            this.camera.up.set(0, 0, 1); // Because ECI is +Z UP
-            this.earth.earthMesh.rotation.x - Math.PI / 2; // Because ECI is +Z UP
-        }
+        this.sun?.update(this.appClock.Date);
+        // Update Earth
+        this.earth?.update(this.appClock.Date);
+        // Render the scene
+        this.renderer.render(this.scene, this.camera);
     }
 
     private updateSunPos(nowtime: Date) {

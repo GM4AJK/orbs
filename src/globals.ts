@@ -39,6 +39,10 @@ export class Globals {
 
     public static debug: boolean = true;
 
+    public static useAmbientLight: boolean = true;
+    public static ambientLightValue: number = 0x808080; // 242824;
+
+    public static showWorldAxisHelperArrows: boolean = true;
     /**
      * Should the Earth.update() function console log when a satellite
      * propagation took place those details? Set to true to enable.

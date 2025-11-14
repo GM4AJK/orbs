@@ -22,7 +22,7 @@ const app = new AppMain();
 
 function animate() {
   requestAnimationFrame(animate);
-  app.main();
+  app.animate();
 }
 
 animate();

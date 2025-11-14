@@ -18,26 +18,55 @@ DEALINGS IN THIS SOFTWARE.
 */
 export class Clock {
 
+    // The Date object shared out across things that need the sim date and time.
     public Date: Date;
-    private initMS: number;
 
+    // Internal variables to maintain the clock.
+    private lastRealMS: number;
+    private speedMultiplier: number;
+    private lastDeltaMS: number = 0; // stores last delta
 
-    constructor(in_date: Date | null) {
-        if (in_date === null) {
-            this.Date = new Date();
-        }
-        else {
-            this.Date = in_date;
-        }
-        this.initMS = Date.now();
+    constructor(
+        startDate: Date | null = null, // Initial, optional, starting date.
+        speedMultiplier: number = 1    // Speed multipler.
+    ) {
+        this.Date = startDate ? new Date(startDate) : new Date();
+        this.lastRealMS = Date.now();
+        this.speedMultiplier = speedMultiplier;
     }
 
-    // To be called in the animate loop to
-    // ensure that internal clock advances.
-    update() {
-        const currMS = Date.now();
-        const delta = currMS - this.initMS;
-        this.initMS = currMS;
-        this.Date.setTime(this.Date.getTime() + delta);
+    public update() {
+        const now = Date.now();
+        const realDelta = now - this.lastRealMS;
+        this.lastRealMS = now;
+        const simulatedDelta = realDelta * this.speedMultiplier;
+        this.lastDeltaMS = simulatedDelta;
+        this.Date = new Date(this.Date.getTime() + simulatedDelta);
+    }
+
+    public getDelta(): number {
+        return this.lastDeltaMS;
+    }
+
+    public setSpeed(
+        multiplier: number
+    ) {
+        this.speedMultiplier = multiplier;
+    }
+
+    public setDate(
+        newDate: Date
+    ) {
+        this.Date = new Date(newDate);
+        this.lastRealMS = Date.now(); // reset anchor
+        this.lastDeltaMS = 0; // reset delta
+    }
+
+    public getTime(): number {
+        return this.Date.getTime();
+    }
+
+    public getDate(): Date {
+        return this.Date;
     }
 }
