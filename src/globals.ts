@@ -16,6 +16,18 @@ FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TOR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 DEALINGS IN THIS SOFTWARE.
 */
+
+export const AU = 149597870.700;
+export const SCALE_FACTOR = 1e-6;
+
+export function metres(i: number) : number {
+    return i * SCALE_FACTOR * 1000;
+}
+
+export function km(i: number) : number {
+    return i * SCALE_FACTOR;
+}
+
 export class Globals {
 
     /**
@@ -55,6 +67,11 @@ export class Globals {
         "public/TLEs/starlink/grouped_shells",
     ];
 
+    public static display_axis_helper: boolean = false;
+    public static display_meridian_line: boolean = false;
+    public static display_equator_line: boolean = false;
+
+    public static display_earth_axis_helpers: boolean = false;
 
     public static log_sun_position_updates: boolean = false;
 

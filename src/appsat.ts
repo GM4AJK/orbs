@@ -19,6 +19,8 @@ INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PA
 import * as THREE from 'three'
 import * as satellite from 'satellite.js';
 
+import { SCALE_FACTOR, km } from './globals.ts';
+
 export type AppSatPosition = {
     threejs: THREE.Vector3;
     position: satellite.EciVec3<number>;
@@ -43,7 +45,7 @@ export class AppSat {
     private spot: THREE.Mesh | null = null;
     private oldSpot: THREE.Mesh | null = null;
     private spotColor: number = 0xffff00;
-    private spotRadius: number = 10;
+    private spotRadius: number = km(10);
     private spotSegWidth: number = 16;
     private spotSegNum: number = 16;
 
@@ -74,7 +76,11 @@ export class AppSat {
         return sat;
     }
 
-    public update(clock: Date, color: number | null = null, radius: number | null = null): AppSat | false | null {
+    public update(
+        clock: Date, 
+        color: number | null = null, 
+        radius: number | null = null
+    ): AppSat | false | null {
         if (this.satrec === null) return false;
         if (this.updatePositionAT(clock)) {
             this.lastPropagateDate = clock;
@@ -86,7 +92,10 @@ export class AppSat {
         return this;
     }
 
-    public static satRecTest(satrec: satellite.SatRec, attime: Date | null): boolean {
+    public static satRecTest(
+        satrec: satellite.SatRec, 
+        attime: Date | null
+    ): boolean {
         if (attime === null) attime = new Date();
         const j: number = satellite.jday(attime);
         const m: number = (j - satrec.jdsatepoch) * 1440.0;
@@ -94,7 +103,9 @@ export class AppSat {
         return true;
     }
 
-    private updatePositionAT(in_date: Date): boolean {
+    private updatePositionAT(
+        in_date: Date
+    ): boolean {
         if (this.satrec !== null) {
             const dtime: Date = new Date(in_date.getTime());
             const j: number = satellite.jday(dtime);
@@ -104,6 +115,9 @@ export class AppSat {
             if (!this.posVel) return false;
             const posEci: satellite.EciVec3<number> = this.posVel.position;
             if (!posEci) return false;
+            posEci.x = km(posEci.x);
+            posEci.y = km(posEci.y);
+            posEci.z = km(posEci.z);
             const posEcf = satellite.eciToEcf(posEci, gmst);
             this.position = new THREE.Vector3(posEcf.x, posEcf.z, -posEcf.y); // ECI to THREE
             const velEcf = satellite.eciToEcf(this.posVel.velocity, gmst);
@@ -115,7 +129,9 @@ export class AppSat {
         return false;
     }
 
-    private calculateGeodeticGroundPoint(gmst: satellite.GMSTime): satellite.GeodeticLocation | null {
+    private calculateGeodeticGroundPoint(
+        gmst: satellite.GMSTime
+    ): satellite.GeodeticLocation | null {
         if (this.posVel !== null) {
             const geo = satellite.eciToGeodetic(this.posVel.position, gmst);
             return geo;
@@ -123,7 +139,11 @@ export class AppSat {
         return null;
     }
 
-    public setFromTLE(line1: string, line2: string, line0: string | null): AppSat | null {
+    public setFromTLE(
+        line1: string, 
+        line2: string, 
+        line0: string | null
+    ): AppSat | null {
         this.epoch = null;
         this.line1 = line1;
         this.line2 = line2;
@@ -137,7 +157,9 @@ export class AppSat {
         return null;
     }
 
-    public setFromJsonOOM(in_oom: satellite.OMMJsonObject): AppSat | null {
+    public setFromJsonOOM(
+        in_oom: satellite.OMMJsonObject
+    ): AppSat | null {
         this.satrec = satellite.json2satrec(in_oom);
         if (this.satrec !== null) {
             this.line0 = in_oom.OBJECT_NAME;
@@ -170,7 +192,10 @@ export class AppSat {
      * @param color 
      * @returns AppSat instance
      */
-    private createSpot(in_color: number | null, in_radius: number | null): AppSat {
+    private createSpot(
+        in_color: number | null, 
+        in_radius: number | null
+    ): AppSat {
         let color: number = this.spotColor;
         if (in_color !== null) {
             color = in_color;
@@ -181,8 +206,13 @@ export class AppSat {
         }
         if (this.position !== null) {
             const geometry = new THREE.SphereGeometry(radius, this.spotSegWidth, this.spotSegNum);
-            const material = new THREE.MeshBasicMaterial({ color });
+            //const material = new THREE.MeshBasicMaterial({ color });
+            const c = new THREE.Color((color>>16 & 0xff), (color>>8 & 0xff), (color & 0xff));
+            const material = new THREE.MeshPhongMaterial({  
+                color: c
+            });
             const spot = new THREE.Mesh(geometry, material);
+            spot.receiveShadow = true;
             spot.position.set(this.position.x, this.position.y, this.position.z);
             this.oldSpot = this.spot; // Store the previous spot so it can be removed.
             this.spot = spot;

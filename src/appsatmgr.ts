@@ -19,7 +19,7 @@ DEALINGS IN THIS SOFTWARE.
 import * as satellite from 'satellite.js';
 import { AppSat } from './appsat.ts';
 import { Earth } from './earth.ts';
-import { Globals as Globals } from './globals.ts';
+import { Globals, km } from './globals.ts';
 
 export class AppSatMgr {
 
@@ -125,61 +125,6 @@ export class AppSatMgr {
         this.recs_loaded = true;
     }
 
-    async initStarlinkPlane(filename: string = "TLEs/starlink/grouped_shells_json/shell_300km/plane_0.json"): Promise<void> {
-        if (Globals.opmode == "prd") {
-            filename = "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json";
-        }
-        console.log(`Loading ${filename}`);
-        const response = await fetch(filename);
-        const data = await response.json();
-        const d: Date = new Date();
-        let loopIndex: number = 0;
-        data.forEach((record: satellite.OMMJsonObject, _index: number) => {
-            if (record !== null) {
-                const satId: number = Number(record.NORAD_CAT_ID);
-                const s: satellite.SatRec = satellite.json2satrec(record);
-                if (AppSat.satRecTest(s, d)) { // Test the TLE can propagate.
-                    const a = AppSat.Factory_FromJsonOMM(record);
-                    if (a !== null) {
-                        //          satId   index   epochNum
-                        const has: [number, number, number] | null = this.hasSat(satId);
-                        if (has !== null) {
-                            const index: number = has[1];
-                            const otherEpoch: number = has[2];
-                            const myEpoch: number | null = a.epochNumeric;
-                            if (myEpoch !== null) {
-                                if (myEpoch > otherEpoch) {
-                                    this.replaceSat(index, satId, a);
-                                }
-                            }
-                        }
-                        else {
-                            this.appSatsArrayMap[loopIndex++].set(satId, a);
-                            if (loopIndex >= this.numOfArrays) loopIndex = 0;
-                        }
-                        if (this.appSatsMap.has(satId)) {
-                            const inlist: AppSat | undefined = this.appSatsMap.get(satId);
-                            if (inlist && a.epochNumeric != null && inlist.epochNumeric != null) {
-                                const otherEpoch = AppSat.tleEpochToUTC_Num(inlist.epochNumeric);
-                                const thisEpoch = AppSat.tleEpochToUTC_Num(a.epochNumeric);
-                                if (thisEpoch > otherEpoch) {
-                                    // This is a newer TLE, remove the older one from the list and insert this one
-                                    this.appSatsMap.delete(satId);
-                                    this.appSatsMap.set(satId, a);
-                                }
-                            }
-                        }
-                        else {
-                            this.appSatsMap.set(satId, a);
-                        }
-                    }
-                }
-            }
-        });
-        console.log(`Done.`);
-        this.recs_loaded = true;
-    }
-
     public updateSatellites(clock: Date) {
         if (this.appSatsMap.size < 1) {
             return;
@@ -195,10 +140,10 @@ export class AppSatMgr {
                 if (spot !== null) {
                     const old = sat.getOldSpot();
                     if (old !== null) {
-                        this.earth.earth.remove(old);
+                        this.earth.planet.remove(old);
                         sat.spotDispose(old);
                     }
-                    this.earth.earth.add(spot);
+                    this.earth.planet.add(spot);
                     if (Globals.log_sat_updates === true && sat.line0 !== null) {
                         if (Globals.satNameArray.indexOf(sat.line0) > -1) {
                             console.log(sat.toString());
@@ -211,14 +156,7 @@ export class AppSatMgr {
 
     private lastIndexUpdated: number = 0;
 
-    public updateSatellitesNew(clock: Date) {
-        if (this.appSatsMap.size < 1) {
-            return;
-        }
-        const map: Map<number, AppSat> = this.appSatsArrayMap[this.lastIndexUpdated++];
-        if (this.lastIndexUpdated >= this.numOfArrays) {
-            this.lastIndexUpdated = 0;
-        }
+    private updateSatelliteMap(map: Map<number, AppSat>, clock: Date) {
         map.forEach((sat: AppSat, _satId: number) => {
             let color = null, radius = null;
             if (sat.line0 !== null) {
@@ -230,10 +168,10 @@ export class AppSatMgr {
                 if (spot !== null) {
                     const old = sat.getOldSpot();
                     if (old !== null) {
-                        this.earth.earth.remove(old);
+                        this.earth.planet.remove(old);
                         sat.spotDispose(old);
                     }
-                    this.earth.earth.add(spot);
+                    this.earth.planet.add(spot);
                     if (Globals.log_sat_updates === true && sat.line0 !== null) {
                         if (Globals.satNameArray.indexOf(sat.line0) > -1) {
                             console.log(sat.toString());
@@ -244,15 +182,28 @@ export class AppSatMgr {
         });
     }
 
+    public updateSatellitesNew(clock: Date) {
+        if (this.appSatsMap.size < 1) {
+            return;
+        }
+        const map: Map<number, AppSat> = this.appSatsArrayMap[this.lastIndexUpdated++];
+        //if (this.lastIndexUpdated >= this.numOfArrays) {
+        //    this.lastIndexUpdated = 0;
+        //}
+        //this.updateSatelliteMap(map, clock);
+        for(let i = 0; i < this.appSatsArrayMap.length; i++) {
+            this.updateSatelliteMap(this.appSatsArrayMap[i], clock);
+        }
+    }
+
     private specialCases(name: string): [number, number] | [null, null] {
         // ISS and CSS are special cases so color and enlarge them
         if (name == 'ISS (ZARYA)') {
-            return [0xff0000, 50];
+            return [0xff0000, km(50)];
         }
         if (name == 'CSS (TIANHE)') {
-            return [0xffff00, 50];
+            return [0xffff00, km(50)];
         }
         return [null, null];
     }
-
 }

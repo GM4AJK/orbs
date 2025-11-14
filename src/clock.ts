@@ -17,27 +17,45 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THIS SOFTWARE.
 */
 export class Clock {
-
     public Date: Date;
-    private initMS: number;
+    private lastRealMS: number;
+    private speedMultiplier: number;
+    private lastDeltaMS: number = 0; // stores last delta
 
-
-    constructor(in_date: Date | null) {
-        if (in_date === null) {
-            this.Date = new Date();
-        }
-        else {
-            this.Date = in_date;
-        }
-        this.initMS = Date.now();
+    constructor(startDate: Date | null = null, speedMultiplier: number = 1) {
+        this.Date = startDate ? new Date(startDate) : new Date();
+        this.lastRealMS = Date.now();
+        this.speedMultiplier = speedMultiplier;
     }
 
-    // To be called in the animate loop to
-    // ensure that internal clock advances.
     update() {
-        const currMS = Date.now();
-        const delta = currMS - this.initMS;
-        this.initMS = currMS;
-        this.Date.setTime(this.Date.getTime() + delta);
+        const now = Date.now();
+        const realDelta = now - this.lastRealMS;
+        this.lastRealMS = now;
+        const simulatedDelta = realDelta * this.speedMultiplier;
+        this.lastDeltaMS = simulatedDelta;
+        this.Date = new Date(this.Date.getTime() + simulatedDelta);
+    }
+
+    getDelta(): number {
+        return this.lastDeltaMS;
+    }
+
+    setSpeed(multiplier: number) {
+        this.speedMultiplier = multiplier;
+    }
+
+    setDate(newDate: Date) {
+        this.Date = new Date(newDate);
+        this.lastRealMS = Date.now(); // reset anchor
+        this.lastDeltaMS = 0; // reset delta
+    }
+
+    getTime(): number {
+        return this.Date.getTime();
+    }
+
+    getDate(): Date {
+        return this.Date;
     }
 }

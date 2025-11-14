@@ -262,34 +262,83 @@ export function eciToEcf(x: number, y: number, z: number, gmst: number): { x: nu
     return { x: xEcf, y: yEcf, z: zEcf };
 }
 
-export function createXAxisLine(len: number): THREE.Line {
+export function createLine(a: THREE.Vector3, b: THREE.Vector3, color: number = 0xff80ff): THREE.Line {
     const points = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(len, 0, 0)
+        a.clone(),
+        b.clone()
     ];
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: 0x00ff00 }); // Grn
+    const material = new THREE.LineBasicMaterial({ color: color });
     return new THREE.Line(geometry, material);
 }
 
-export function createYAxisLine(len: number): THREE.Line {
-    const points = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, len, 0)
-    ];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: 0x0000ff }); // Blue
-    return new THREE.Line(geometry, material);
+export interface createHemisphereGeometryParams {
+    radius: number;
+    widthSegments: number;
+    heightSegments: number;
 }
 
-export function createZAxisLine(len: number): THREE.Line {
-    const points = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, len)
-    ];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: 0xff0000 }); // Red
-    return new THREE.Line(geometry, material);
+export function createHemisphereGeometry(p: createHemisphereGeometryParams):  THREE.SphereGeometry {
+    if(p.radius === undefined) p.radius = 100;
+    if(p.widthSegments === undefined) p.widthSegments = 32;
+    if(p.heightSegments === undefined) p.heightSegments = 16;
+    const phiStart = 0; // Start angle for longitude (most cases 0)
+    const phiLength = Math.PI * 2; // The full 360 degrees
+    const thetaStart = 0; // Start angle for latitude (top of the sphere)
+    const thetaLength = Math.PI / 2; // Half the vertical length (to the equator)
+
+    const geometry = new THREE.SphereGeometry(
+        p.radius,
+        p.widthSegments,
+        p.heightSegments,
+        phiStart,
+        phiLength,
+        thetaStart,
+        thetaLength
+    );
+    return geometry;
+}
+
+export function createXAxisLine(len: number, color: number = 0xff0000): THREE.Line  | THREE.ArrowHelper {
+    const origin = new THREE.Vector3(0,0,0);
+    const dir = new THREE.Vector3(1, 0, 0);
+    dir.normalize();
+    return new THREE.ArrowHelper( dir, origin, len, color );
+    // const points = [
+    //     new THREE.Vector3(0, 0, 0),
+    //     new THREE.Vector3(len, 0, 0)
+    // ];
+    // const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    // const material = new THREE.LineBasicMaterial({ color: color });
+    // return new THREE.Line(geometry, material);
+}
+
+export function createYAxisLine(len: number, color: number = 0x0000ff): THREE.Line | THREE.ArrowHelper {
+    const origin = new THREE.Vector3(0,0,0);
+    const dir = new THREE.Vector3(0, 1, 0);
+    dir.normalize();
+    return new THREE.ArrowHelper( dir, origin, len, color );
+    // const points = [
+    //     new THREE.Vector3(0, 0, 0),
+    //     new THREE.Vector3(0, len, 0)
+    // ];
+    // const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    // const material = new THREE.LineBasicMaterial({ color: color });
+    // return new THREE.Line(geometry, material);
+}
+
+export function createZAxisLine(len: number, color: number = 0x00ff00): THREE.Line | THREE.ArrowHelper {
+    const origin = new THREE.Vector3(0,0,0);
+    const dir = new THREE.Vector3(0, 0, 1);
+    dir.normalize();
+    return new THREE.ArrowHelper( dir, origin, len, color );
+    // const points = [
+    //     new THREE.Vector3(0, 0, 0),
+    //     new THREE.Vector3(0, 0, len)
+    // ];
+    // const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    // const material = new THREE.LineBasicMaterial({ color: color }); 
+    // return new THREE.Line(geometry, material);
 }
 
 export function addAxisHelperToScene(scene: THREE.Scene, len: number = 10000) {
@@ -301,5 +350,12 @@ export function addAxisHelperToScene(scene: THREE.Scene, len: number = 10000) {
     scene.add(z);
 }
 
-
+export function addAxisHelperToGroup(group: THREE.Group, len: number = 10000) {
+    const x = createXAxisLine(len, 0x00ffff);
+    const y = createYAxisLine(len, 0x0000ff); // Keep blue for Y-up and match world/scene helper
+    const z = createZAxisLine(len, 0xff00ff);
+    group.add(x);
+    group.add(y);
+    group.add(z);
+}
 
