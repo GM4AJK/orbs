@@ -1,6 +1,19 @@
 # Building
 
+This project uses *vite*.
 
+Check out from GitHub and go into the project folder.
+C:\github>git clone <GHURL> 
+C:\github>cd orbs
+
+Run VS Code
+C:\github\orbs>code .
+
+In VS Code open a new termnial and do:-
+C:\github\orbs>npm install 
+C:\github\orbs>npm run dev
+
+Use a browser to go to http://localhost:5173/
 
 
 ## How the project was initially setup using Vite
