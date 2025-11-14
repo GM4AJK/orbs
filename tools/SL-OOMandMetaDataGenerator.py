@@ -51,6 +51,9 @@ def group_json_omm_by_flight(tsv_path, omm_path, output_dir):
                     enriched = dict(omm)
                     enriched["FLIGHT_ID"] = flight_id.strip()
                     enriched["LAUNCH_DATE"] = row.get("Launch_Date", "").strip()
+                    enriched["LAUNCH_TAG"] = row.get("#Launch_Tag", "").strip()
+                    enriched["PIECE"] = row.get("Piece", "").strip()
+                    enriched["JCAT"] = row.get("JCAT", "").strip()
                     grouped[flight_id.strip()].append(enriched)
 
     # Write grouped JSON files

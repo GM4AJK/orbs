@@ -19,6 +19,84 @@ DEALINGS IN THIS SOFTWARE.
 import * as THREE from 'three';
 import * as satellite from 'satellite.js';
 
+export class APPUTILS {
+
+    public static readonly SF: number = 1/1000.0;
+
+    public static readonly EARTH_RADIUS_SCALED = this.km(6734.0);
+
+    public static km(kilometers: number) : number {
+        // Scale kilometers for ThreeJS units.
+        // 100,000km = 1 Unit.
+        return kilometers * APPUTILS.SF;
+    }
+
+    public static AU(): number {
+        return (149597870.7 * APPUTILS.SF);
+    }
+
+    public static createWorldAxisHelper(
+        len: number, 
+    ): THREE.Group {
+        const origin = new THREE.Vector3(0,0,0);
+        const g = new THREE.Group();
+        g.add(new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, len, 0xff0000));
+        g.add(new THREE.ArrowHelper(new THREE.Vector3(0,1,0), origin, len, 0x0000ff));
+        g.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), origin, len, 0x00ff00));
+        return g;
+    }
+
+    public static createLocalAxisHelper(
+        len: number, 
+    ): THREE.Group {
+        const origin = new THREE.Vector3(0,0,0);
+        const g = new THREE.Group();
+        g.add(new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, len, 0x00ffff));
+        g.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), origin, len, 0xff00ff));
+        return g;
+    }
+
+    public static createOriginArrow(
+        vec: THREE.Vector3
+    ): THREE.Group {
+        const origin = new THREE.Vector3(0,0,0);
+        const g = new THREE.Group();
+        g.add(new THREE.ArrowHelper(vec, origin, 20, 0xffffff));
+        return g;
+    }
+
+
+
+
+    public static getSunECIPosition(date: Date): THREE.Vector3 {
+        const deg2rad = Math.PI / 180;
+        // Julian Date
+        const JD = date.getTime() / 86400000 + 2440587.5;
+        const T = (JD - 2451545.0) / 36525; // Julian centuries since J2000
+        // Mean longitude of the Sun (deg)
+        const L0 = (280.46646 + 36000.76983 * T) % 360;
+        // Mean anomaly of the Sun (deg)
+        const M = (357.52911 + 35999.05029 * T) % 360;
+        // Equation of center (deg)
+        const C =
+            (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M * deg2rad) +
+            (0.019993 - 0.000101 * T) * Math.sin(2 * M * deg2rad) +
+            0.000289 * Math.sin(3 * M * deg2rad);
+        // True longitude (deg)
+        const trueLon = L0 + C;
+        // Obliquity of the ecliptic (deg)
+        const epsilon = 23.439291 - 0.0130042 * T;
+        // Convert to ECI unit vector
+        const lonRad = trueLon * deg2rad;
+        const epsRad = epsilon * deg2rad;
+        const x = Math.cos(lonRad);
+        const y = Math.cos(epsRad) * Math.sin(lonRad);
+        const z = Math.sin(epsRad) * Math.sin(lonRad);
+        let v = new THREE.Vector3(x, z, -y); // ECI is Z UP, ThreeJS is Y UP
+        return v.multiplyScalar(APPUTILS.AU()); // in ThreeJS scaled units
+    }
+}
+
 export type TopocentricCoordDegrees = {
     azimuth: number;
     elevation: number;

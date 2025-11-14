@@ -22,69 +22,58 @@ import * as THREE from 'three'
 
 import * as satellite from 'satellite.js';
 
+import { AppMain } from './appmain.ts';
 import { Clock as AppClock } from './clock.ts';
 import { AppSat } from './appsat.ts';
 import { AppSatMgr } from './appsatmgr.ts';
-import { geodeticToECEF } from './apputils.ts';
+import { APPUTILS, geodeticToECEF } from './apputils.ts';
 
 export class Earth {
 
+    // Access to system setup
+    private appmain: AppMain;
+
     // Allow modules to add and remove ThreeJS objects.
-    public earth: THREE.Group;
+    private group: THREE.Group;
 
-    private appSatArray: Map<string, AppSat>;
-    private appSatMgr: AppSatMgr | null = null;
-    private appClock: AppClock;
-    private iss: AppSat | null = null;
-    private css: AppSat | null = null;
-    private earthRadiusKm: number = 6371; // Earth's mean radius in kilometers
-    private earthMesh: THREE.Mesh;
+    //private appSatArray: Map<string, AppSat>;
+    //private appSatMgr: AppSatMgr | null = null;
+    //private earthRadiusKm: number = 6371; // Earth's mean radius in kilometers
+    //private earthMesh: THREE.Mesh;
 
-    // @ts-ignore
-    private satelliteOrbitsMap: Map<string, THREE.Line<THREE.BufferGeometry<THREE.NormalBufferAttributes, THREE.BufferGeometryEventMap>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>>;
+    private material: THREE.MeshPhongMaterial | null = null;
 
-    // @ts-ignore
-    private satelliteSpotsMap: Map<string, THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes, THREE.BufferGeometryEventMap>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>>;
-
-    constructor(scene: THREE.Scene | null, appClock: AppClock) {
-        this.appSatArray = new Map();
-        this.appSatMgr = new AppSatMgr(this);
-        //this.appSatMgr.init();
-        this.appSatMgr.init("TLEs/starlink/grouped_shells_json/shell_300km/plane_20.json");
-        this.earth = new THREE.Group();
-        this.appClock = appClock;
-        this.satelliteSpotsMap = new Map<string, THREE.Mesh>;
-        this.satelliteOrbitsMap = new Map<string, THREE.Line>;
-        const textureLoader = new THREE.TextureLoader();
-        const earthTexture = textureLoader.load('textures/2_no_clouds_8k.jpg');
-        const earthGeometry = new THREE.SphereGeometry(this.earthRadiusKm, 256, 256);
-        const earthMaterial = new THREE.MeshPhongMaterial({
-            map: earthTexture,
-            specular: new THREE.Color('grey'),
-            shininess: 5
-        });
-        this.earthMesh = new THREE.Mesh(earthGeometry, earthMaterial); // Default alignment is meridian aligned X axis
-        this.earth.add(this.earthMesh);
-        // Align the mesh to GMST
-        const now = this.appClock.Date;
-        const gmst = satellite.gstime(now);
-        this.earth.rotation.y = gmst;
-        //this.earth.rotation.x = THREE.MathUtils.degToRad(EARTH_TILT_DEGREES);
-        if (scene !== null) {
-            const london = this.createSurfaceSpot(51.5, -0.12, 0.1);
-            this.earth.add(london);
-            const edinburgh = this.createSurfaceSpot(56.5, -3.12, 0.1);
-            this.earth.add(edinburgh);
-            this.earth.add(this.getEquator());
-            this.earth.add(this.getMeridian());
-            scene.add(this.earth);
-        }
+    constructor(appmain: AppMain) {
+        this.appmain = appmain;
+        this.group = new THREE.Group();
+        this.group.add(this.createEarthGlobe());
+        const gmst = satellite.gstime(appmain.appClock.Date);
+        this.group.rotation.y = gmst; // Rotate the group/planet into GMST
+        this.group.add(APPUTILS.createLocalAxisHelper(20));
+        this.appmain.scene.add(this.group);
     }
 
+    private createEarthGlobe() {
+        const textureLoader = new THREE.TextureLoader();
+        const earthTexture = textureLoader.load('textures/2_no_clouds_8k.jpg');
+        const earthGeometry = new THREE.SphereGeometry(APPUTILS.EARTH_RADIUS_SCALED, 256, 256);
+        this.material = new THREE.MeshPhongMaterial({
+            map: earthTexture,
+            shininess: 5,
+            transparent: true,
+            opacity: 0.25,
+        });
+        const mesh = new THREE.Mesh(earthGeometry, this.material); // Default alignment is meridian aligned X axis
+        mesh.castShadow = true;
+        return mesh;        
+    }
+    
     private updateCounter: number = 0;
 
     public update(clock: Date) {
-        this.appSatMgr?.updateSatellitesNew(clock);
+        //this.appSatMgr?.updateSatellitesNew(clock);
+        const gmst = satellite.gstime(clock);
+        this.group.rotation.y = gmst; // Rotate the group/planet into GMST
     }
 
     public getEarthMesh(): THREE.Mesh {
